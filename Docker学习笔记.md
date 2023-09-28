@@ -1822,12 +1822,14 @@ ping: tomcat-net-01: Name or service not known
 *   如果要跨网络操作别人，就需要使用 `docker network connect [OPTIONS] NETWORK CONTAINER` 连接&#x20;
 *   docker network connect 实际上就是直接把容器放在指定网络下，使一个容器有多个IP
 
-## Redis集群部署实战
 
-（先学完redis再补全）<https://www.bilibili.com/video/BV1og4y1q7M4?p=38>
 
 ## Docker Compose容器编排
 
 ## Docker Swarm集群部署
+
+## Redis集群部署实战
+
+（先学完redis再补全）<https://www.bilibili.com/video/BV1og4y1q7M4?p=38>
 
 ## CI/CD之jenkins
