@@ -18,13 +18,13 @@
 
 - 分布式架构，做 session 共享。
 
-<img src="images\image-20230928110940805.png" alt="image-20230928110940805" style="zoom:67%;" />
+<img src="images%5Cimage-20230928110940805.png" alt="image-20230928110940805" style="zoom:67%;" />
 
 
 
 **多样的数据结构存储持久化数据**
 
-<img src="images\image-20230928111036732.png" alt="image-20230928111036732" style="zoom: 80%;" />
+<img src="images%5Cimage-20230928111036732.png" alt="image-20230928111036732" style="zoom: 80%;" />
 
 ## 1.3.相关技术
 
@@ -36,7 +36,7 @@
 
 ![image-20230928144814738](images/image-20230928144814738.png)
 
-<img src="images\image-20230928144905732.png" alt="image-20230928144905732" style="zoom:80%;" />
+<img src="images%5Cimage-20230928144905732.png" alt="image-20230928144905732" style="zoom:80%;" />
 
 ## 1.4.安装
 
@@ -66,7 +66,7 @@
 
 安装目录：/usr/local/bin
 
-![image-20230928113822471](images\image-20230928113822471.png)
+![image-20230928113822471](images%5Cimage-20230928113822471.png)
 
 ## 1.5.操作
 
@@ -114,7 +114,7 @@ PONG
 
 1 注释掉bind（支持远程访问）
 
-![image-20231007211558173](images\image-20231007211558173.png)
+![image-20231007211558173](images%5Cimage-20231007211558173.png)
 
 2 protected-mode yes 改为 no （关闭保护模式）
 
@@ -218,7 +218,7 @@ getset <key> <value> # 以新换旧，设置了新值同时获得旧值。
 ### 数据结构
 String 的数据结构为简单动态字符串 (Simple Dynamic String, 缩写 SDS)，是可以修改的字符串，内部结构实现上类似于 Java 的 ArrayList，采用预分配冗余空间的方式来减少内存的频繁分配.
 
-![image-20230928163223630](images\image-20230928163223630.png)
+![image-20230928163223630](images%5Cimage-20230928163223630.png)
 
 如图中所示，内部为当前字符串实际分配的空间 capacity 一般要高于实际字符串长度 len。当字符串长度小于 1M 时，扩容都是加倍现有的空间，如果超过 1M，扩容时一次只会多扩 1M 的空间。需要注意的是字符串最大长度为 512M。
 
@@ -233,7 +233,7 @@ String 的数据结构为简单动态字符串 (Simple Dynamic String, 缩写 SD
 它的底层实际是个**双向链表**，对两端的操作性能很高，通过索引下标的操作中间的节点性能会较差。
 
 
-![image-20231007093440428](images\image-20231007093440428.png)
+![image-20231007093440428](images%5Cimage-20231007093440428.png)
 
 ### 命令
 lpush/rpush<key><value1><value2><value3>....从左边/右边插入一个或多个值。
@@ -278,7 +278,7 @@ rpoplpush<key1><key2>从<key1>列表右边吐出一个值，插到<key2>列表�
 4) "v13"
 ```
 
-<img src="images\image-20231007101919983.png" alt="image-20231007101919983" style="zoom:50%;" />
+<img src="images%5Cimage-20231007101919983.png" alt="image-20231007101919983" style="zoom:50%;" />
 
 
 
@@ -362,11 +362,11 @@ List 的数据结构为快速链表 quickList。
 
 首先在列表元素较少的情况下会使用一块连续的内存存储，这个结构是 ziplist，也即是压缩列表。它将所有的元素紧挨着一起存储，分配的是一块连续的内存。
 
-<img src="images\image-20231007105320976.png" alt="image-20231007105320976" style="zoom: 67%;" />
+<img src="images%5Cimage-20231007105320976.png" alt="image-20231007105320976" style="zoom: 67%;" />
 
 当数据量比较多的时候才会改成 quicklist。因为普通的链表需要的附加指针空间太大，会比较浪费空间。比如这个列表里存的只是 int 类型的数据，结构上还需要两个额外的指针 prev 和 next。
 
-![image-20231007105140965](images\image-20231007105140965.png)
+![image-20231007105140965](images%5Cimage-20231007105140965.png)
 
 Redis 将链表和 ziplist 结合起来组成了 quicklist。也就是将多个 ziplist 使用双向指针串起来使用。这样既满足了快速的插入删除性能，又不会出现太大的空间冗余。
 
@@ -505,17 +505,17 @@ Redis hash 是一个 string 类型的 **field** 和 **value** 的映射表，has
 
 类似 Java 里面的 Map<String,Object>。
 
-![image-20231007154143368](images\image-20231007154143368.png)
+![image-20231007154143368](images%5Cimage-20231007154143368.png)
 
 用户 ID 为查找的 key，存储的 value 用户对象包含姓名，年龄，生日等信息，如果用普通的 key/value 结构来存储，主要有以下 2 种存储方式：
 
-<img src="images\image-20231007154426019.png" alt="image-20231007154426019" style="zoom: 67%;" />
+<img src="images%5Cimage-20231007154426019.png" alt="image-20231007154426019" style="zoom: 67%;" />
 
 方法一：每次修改用户的某个属性需要，先反序列化改好后再序列化回去。开销较大。
 
 方法二：用户 ID 数据冗余。
 
-<img src="images\image-20231007154506816.png" alt="image-20231007154506816" style="zoom:67%;" />
+<img src="images%5Cimage-20231007154506816.png" alt="image-20231007154506816" style="zoom:67%;" />
 
 通过 key (用户 ID) + field (属性标签) 就可以操作对应属性数据了，既不需要重复存储数据，也不会带来序列化和并发修改控制的问题。
 
@@ -712,11 +712,11 @@ zset 底层使用了两个数据结构：
 
 - hash，hash 的作用就是关联元素 value 和权重 score，保障元素 value 的唯一性，可以通过元素 value 找到相应的 score 值。
 
-<img src="images\image-20231007163925545.png" alt="image-20231007163925545" style="zoom:67%;" />
+<img src="images%5Cimage-20231007163925545.png" alt="image-20231007163925545" style="zoom:67%;" />
 
 - 跳跃表，跳跃表的目的在于给元素 value 排序，根据 score 的范围获取元素列表。
 
-<img src="images\image-20231007164007922.png" alt="image-20231007164007922" style="zoom:67%;" />
+<img src="images%5Cimage-20231007164007922.png" alt="image-20231007164007922" style="zoom:67%;" />
 
 
 
@@ -731,13 +731,13 @@ zset 底层使用了两个数据结构：
 
 1 有序链表
 
-![image-20231007164305722](images\image-20231007164305722.png)
+![image-20231007164305722](images%5Cimage-20231007164305722.png)
 
 要查找值为 51 的元素，需要从第一个元素开始依次查找、比较才能找到。共需要 6 次比较。
 
 2 跳跃表
 
-![image-20231007164344142](images\image-20231007164344142.png)
+![image-20231007164344142](images%5Cimage-20231007164344142.png)
 
 - 从第 2 层开始，1 节点比 51 节点小，向后比较；
 
@@ -769,7 +769,7 @@ setbit<key><offset><value>设置 Bitmaps 中某个偏移量的值(0 或1)
 每个独立用户是否访问过网站存放在Bitmaps中，将访问的用户记做1，没有访问的用户记做0，用偏移量作为用户的id.
 设置键的第offset个位的值(从0算起)，假设现在有20个用户，userid=1,6,11,15,19的用户对网站进行了访问，那么当前Bitmaps初始化结果如图
 
-<img src="images\image-20231008092950812.png" alt="image-20231008092950812" style="zoom:67%;" />
+<img src="images%5Cimage-20231008092950812.png" alt="image-20231008092950812" style="zoom:67%;" />
 
 ```bash
 127.0.0.1:6379> setbit users:20230101 1 1
@@ -1042,11 +1042,11 @@ georadius<key><longitude><latitude>radius m|km|ft|mi
 
 客户端可以订阅频道如下图：
 
-![image-20231007213952214](images\image-20231007213952214.png)
+![image-20231007213952214](images%5Cimage-20231007213952214.png)
 
 当给这个频道发布消息后，消息就会发送给订阅的客户端：
 
-![image-20231007214022568](images\image-20231007214022568.png)
+![image-20231007214022568](images%5Cimage-20231007214022568.png)
 
 ## 3.3发布订阅命令行实现
 
@@ -1091,7 +1091,7 @@ Redis 事务的主要作用就是**串联多个命令**防止别的命令插队�
 ## 4.2.Multi、Exec、discard
 Redis 事务中有 Multi、Exec 和 discard 三个指令，在 Redis 中，从输入 Multi 命令开始，输入的命令都会依次进入命令队列中，但不会执行，直到输入 Exec 后，Redis 会将之前的命令队列中的命令依次执行。而组队的过程中可以通过 discard 来放弃组队。
 
-![image-20231008153456727](images\image-20231008153456727.png)
+![image-20231008153456727](images%5Cimage-20231008153456727.png)
 
 案例说明：
 
@@ -1138,11 +1138,11 @@ QUEUED
 ## 4.3.事务的错误处理
 组队中某个命令出现了报告错误，执行时整个的所有队列都会被取消。
 
-<img src="images\image-20231008155210314.png" alt="image-20231008155210314" style="zoom:67%;" />
+<img src="images%5Cimage-20231008155210314.png" alt="image-20231008155210314" style="zoom:67%;" />
 
 如果执行阶段某个命令报出了错误，则只有报错的命令不会被执行，而其他的命令都会执行，不会回滚。
 
-<img src="images\image-20231008155240813.png" alt="image-20231008155240813" style="zoom:67%;" />
+<img src="images%5Cimage-20231008155240813.png" alt="image-20231008155240813" style="zoom:67%;" />
 
 
 
@@ -1161,17 +1161,17 @@ QUEUED
 
 最终我们可以发现，总共金额是 10000，如果请求全部执行，那最后的金额变为 - 4000，很明显不合理。
 
-![image-20231008155340596](images\image-20231008155340596.png)
+![image-20231008155340596](images%5Cimage-20231008155340596.png)
 
 悲观锁
 
-![image-20231008155425030](images\image-20231008155425030.png)
+![image-20231008155425030](images%5Cimage-20231008155425030.png)
 
 **悲观锁 (Pessimistic Lock)**，顾名思义，就是很悲观，每次去拿数据的时候都认为别人会修改，所以每次在拿数据的时候都会上锁，这样别人想拿这个数据就会 block 直到它拿到锁。**传统的关系型数据库里边就用到了很多这种锁机制**，比如**行锁**，**表锁**等，**读锁**，**写锁**等，都是在做操作之前先上锁。
 
 乐观锁
 
-![image-20231008155553514](images\image-20231008155553514.png)
+![image-20231008155553514](images%5Cimage-20231008155553514.png)
 
 **乐观锁 (Optimistic Lock)**，顾名思义，就是很乐观，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，可以使用版本号等机制。**乐观锁适用于多读的应用类型，这样可以提高吞吐量**。**Redis 就是利用这种 check-and-set 机制实现事务的**。
 
@@ -1226,7 +1226,7 @@ unwatch
 # 5.Redis_事务秒杀案例
 ## 5.1.解决计数器和人员记录的事务操作
 
-<img src="images\image-20231009091957154.png" alt="image-20231009091957154" style="zoom:80%;" />
+<img src="images%5Cimage-20231009091957154.png" alt="image-20231009091957154" style="zoom:80%;" />
 
 ## 5.2.Redis 事务 — 秒杀并发模拟
 > 使用工具 ab 模拟测试：
@@ -1247,15 +1247,15 @@ im postfile 模拟表单提交参数， 以 & 符号结尾，存放当前目录�
 
 **超卖**
 
-![image-20231009102115757](images\image-20231009102115757.png)<img src="images\image-20231009102137513.png" alt="image-20231009102137513" style="zoom:67%;" />
+![image-20231009102115757](images%5Cimage-20231009102115757.png)<img src="images%5Cimage-20231009102137513.png" alt="image-20231009102137513" style="zoom:67%;" />
 
 ## 5.3.超卖问题
 
-<img src="images\image-20231009102301028.png" alt="image-20231009102301028" style="zoom: 80%;" />
+<img src="images%5Cimage-20231009102301028.png" alt="image-20231009102301028" style="zoom: 80%;" />
 
 **利用乐观锁淘汰用户，解决超卖问题。**
 
-<img src="images\image-20231009102408184.png" alt="image-20231009102408184" style="zoom:80%;" />
+<img src="images%5Cimage-20231009102408184.png" alt="image-20231009102408184" style="zoom:80%;" />
 
 **主要代码：**
 
@@ -1345,7 +1345,7 @@ public class SecKill_redis {
 
 
 
-![image-20231009102656228](images\image-20231009102656228.png)![image-20231009102723869](images\image-20231009102723869.png)
+![image-20231009102656228](images%5Cimage-20231009102656228.png)![image-20231009102723869](images%5Cimage-20231009102723869.png)
 
 ## 5.4.继续增加并发测试
 **连接有限制**
@@ -1356,7 +1356,7 @@ public class SecKill_redis {
 
 已经秒光，可是还有库存。原因：乐观锁导致很多请求都失败。先点的没秒到，后点的可能秒到了。
 
-![image-20231009102949252](images\image-20231009102949252.png)
+![image-20231009102949252](images%5Cimage-20231009102949252.png)
 
 **连接超时，通过连接池解决**
 
@@ -1383,7 +1383,7 @@ LUA 脚本在 Redis 中的优势
 
 - 利用 lua 脚本淘汰用户，解决超卖问题，redis 2.6 版本以后，通过 lua 脚本解决**争抢问题**，实际上是 **redis 利用其单线程的特性，用任务队列的方式解决多任务并发问题**。
 
-![image-20231009103037696](images\image-20231009103037696.png)
+![image-20231009103037696](images%5Cimage-20231009103037696.png)
 
 # 6.Redis 持久化之 RDB
 ## 6.1.总体介绍
@@ -1413,7 +1413,7 @@ Redis 会单独创建（fork）一个子进程来进行持久化，首先会将�
 
 
 
-### ![image-20231009110618566](images\image-20231009110618566.png)
+### ![image-20231009110618566](images%5Cimage-20231009110618566.png)
 
 ### 6.2.5.dump.rdb 文件
 
@@ -1425,7 +1425,7 @@ rdb 文件的保存路径，也可以修改。默认为 Redis 启动时命令行
 
 **配置文件中默认的快照配置**
 
-![image-20231009110717515](images\image-20231009110717515.png)
+![image-20231009110717515](images%5Cimage-20231009110717515.png)
 
 **命令 save VS bgsave**
 
@@ -1446,7 +1446,7 @@ rdb 文件的保存路径，也可以修改。默认为 Redis 启动时命令行
 - 恢复速度快
 
 
-![image-20231009110828744](images\image-20231009110828744.png)
+![image-20231009110828744](images%5Cimage-20231009110828744.png)
 
 
 ### 6.2.8.劣势
@@ -1462,7 +1462,7 @@ rdb 文件的保存路径，也可以修改。默认为 Redis 启动时命令行
 
 ### 6.2.10.小总结
 
-<img src="images\image-20231009110854426.png" alt="image-20231009110854426" style="zoom:80%;" />
+<img src="images%5Cimage-20231009110854426.png" alt="image-20231009110854426" style="zoom:80%;" />
 
 ### 6.2.11.如何恢复
 
@@ -1486,7 +1486,7 @@ rdb 文件的保存路径，也可以修改。默认为 Redis 启动时命令行
 
 4、Redis 服务重启时，会重新 load 加载 AOF 文件中的写操作达到数据恢复的目的。
 
-<img src="images\image-20231009164214646.png" alt="image-20231009164214646" style="zoom:80%;" />
+<img src="images%5Cimage-20231009164214646.png" alt="image-20231009164214646" style="zoom:80%;" />
 
 ### 7.1.2.AOF 默认不开启
 
@@ -1564,11 +1564,11 @@ Redis 会记录上次重写时的 AOF 大小，默认配置是当 AOF 文件大�
 
 5、使用新的 AOF 文件覆盖旧的 AOF 文件，完成 AOF 重写。
 
-<img src="images\image-20231009152543319.png" alt="image-20231009152543319" style="zoom:80%;" />
+<img src="images%5Cimage-20231009152543319.png" alt="image-20231009152543319" style="zoom:80%;" />
 
 ### 7.1.7.优势
 
-<img src="images\image-20231009152622119.png" alt="image-20231009152622119" style="zoom:67%;" />
+<img src="images%5Cimage-20231009152622119.png" alt="image-20231009152622119" style="zoom:67%;" />
 
 - 备份机制更稳健，丢失数据概率更低。
 
@@ -1586,7 +1586,7 @@ Redis 会记录上次重写时的 AOF 大小，默认配置是当 AOF 文件大�
 
 ### 7.1.9.小总结
 
-<img src="images\image-20231009152837428.png" alt="image-20231009152837428" style="zoom:80%;" />
+<img src="images%5Cimage-20231009152837428.png" alt="image-20231009152837428" style="zoom:80%;" />
 
 ## 7.2.总结 (Which one)
 
@@ -1638,7 +1638,7 @@ Redis 会记录上次重写时的 AOF 大小，默认配置是当 AOF 文件大�
 
 - 容灾快速恢复
 
-![image-20231010091027464](images\image-20231010091027464.png)
+![image-20231010091027464](images%5Cimage-20231010091027464.png)
 
 ## 8.1.复制原理
 - Slave 启动成功连接到 master 后会发送一个 sync 命令；
@@ -1651,7 +1651,7 @@ Redis 会记录上次重写时的 AOF 大小，默认配置是当 AOF 文件大�
 
 - 但是只要是重新连接 master，一次完全同步（全量复制) 将被自动执行。
 
-![image-20231010091053900](images\image-20231010091053900.png)
+![image-20231010091053900](images%5Cimage-20231010091053900.png)
 
 **配置**
 
@@ -1826,7 +1826,7 @@ slave1:ip=127.0.0.1,port=6381,state=online,offset=28,lag=1
 
 反客为主：当一个 master 宕机后，后面的 slave 可以立刻升为 master，其后面的 slave 不用做任何修改。用 slaveof no one 指令将从机变为主机。而哨兵模式是**反客为主的自动版**，能够后台监控主机是否故障，如果故障了根据投票数自动将从库转换为主库。
 
-![image-20231010091120293](images\image-20231010091120293.png)
+![image-20231010091120293](images%5Cimage-20231010091120293.png)
 
 **当主机挂掉，从机选举产生新的主机**
 
@@ -1840,7 +1840,7 @@ slave1:ip=127.0.0.1,port=6381,state=online,offset=28,lag=1
 
 **故障恢复**
 
-<img src="images\image-20231010091207052.png" alt="image-20231010091207052" style="zoom:80%;" />
+<img src="images%5Cimage-20231010091207052.png" alt="image-20231010091207052" style="zoom:80%;" />
 
 优先级：在 redis.conf 中默认 slave-priority 100，值越小优先级越高。
 
