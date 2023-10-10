@@ -1628,6 +1628,307 @@ Redis 会记录上次重写时的 AOF 大小，默认配置是当 AOF 文件大�
 
 
 
+# 8.Redis 主从复制
+
+主机数据更新后根据配置和策略， 自动同步到备机的 master/slaver 机制，**Master 以写为主**，**Slave 以读为主**，主从复制节点间数据是全量的。
+
+作用：
+
+- 读写分离，性能扩展
+
+- 容灾快速恢复
+
+![image-20231010091027464](C:\Users\syx\AppData\Roaming\Typora\typora-user-images\image-20231010091027464.png)
+
+## 8.1.复制原理
+- Slave 启动成功连接到 master 后会发送一个 sync 命令；
+
+- Master 接到命令启动后台的存盘进程，同时收集所有接收到的用于修改数据集命令，在后台进程执行完毕之后，master 将传送整个数据文件到 slave，以完成一次完全同步。
+
+- 全量复制（被动）：slave 服务器在接收到数据库文件数据后，将其存盘并加载到内存中。
+
+- 增量复制（主动）：Master 继续将新的所有收集到的修改命令依次传给 slave，完成同步。
+
+- 但是只要是重新连接 master，一次完全同步（全量复制) 将被自动执行。
+
+![image-20231010091053900](C:\Users\syx\AppData\Roaming\Typora\typora-user-images\image-20231010091053900.png)
+
+**配置**
+
+```bash
+1、mkdir /myredis 
+[root@hecs-233798 ~]# mkdir /myredis
+[root@hecs-233798 ~]# cd /myredis/
+
+2、复制 redis.conf 文件到/myredis
+[root@hecs-233798 myredis]# cp /etc/redis.conf /myredis/
+[root@hecs-233798 myredis]# ls
+redis.conf
+
+3、关闭aof: appendonly no
+[root@hecs-233798 myredis]# vim redis.conf 
+
+
+4、配置一主两从，创建三个配置文件 
+# redis6379.conf 
+# redis6380.conf 
+# redis6381.conf
+
+5、配置文件写入内容
+[root@hecs-233798 myredis]# vim redis6379.conf
+include /myredis/redis.conf
+pidfile /var/run/redis_6379.pid
+port 6379
+dbfilename dump6379.rdb
+[root@hecs-233798 myredis]# vim redis6380.conf
+include /myredis/redis.conf
+pidfile /var/run/redis_6380.pid
+port 6380
+dbfilename dump6380.rdb
+[root@hecs-233798 myredis]# vim redis6381.conf
+include /myredis/redis.conf
+pidfile /var/run/redis_6381.pid
+port 6381
+dbfilename dump6381.rdb
+
+6、启动3个redis，连接客户端
+[root@hecs-233798 myredis]# redis-server redis6379.conf 
+[root@hecs-233798 myredis]# redis-server redis6380.conf 
+[root@hecs-233798 myredis]# redis-server redis6381.conf 
+[root@hecs-233798 myredis]# ps -ef|grep redis
+root     16300     1  0 10:33 ?        00:00:00 redis-server 127.0.0.1:6379
+root     16306     1  0 10:33 ?        00:00:00 redis-server 127.0.0.1:6380
+root     16312     1  0 10:33 ?        00:00:00 redis-server 127.0.0.1:6381
+#打开3个会话，分别启动cli
+[root@hecs-233798 myredis]# redis-cli -p 6379
+[root@hecs-233798 myredis]# redis-cli -p 6380
+[root@hecs-233798 myredis]# redis-cli -p 6381
+
+7、查看主从信息，发现三台都是主机
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:0
+....
+127.0.0.1:6380> info replication
+# Replication
+role:master
+connected_slaves:0
+....
+127.0.0.1:6381> info replication
+# Replication
+role:master
+connected_slaves:0
+....
+
+8、配从不配主
+slaveof <ip><port> #成为某个实例的从服务器
+# 8.1 在6380和6381上执行：slaveof 127.0.0.1 6379
+
+127.0.0.1:6380> slaveof 127.0.0.1 6379
+
+127.0.0.1:6381> slaveof 127.0.0.1 6379
+
+# 8.2 查看主从信息
+127.0.0.1:6380> info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6379
+
+127.0.0.1:6381> info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6379
+
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=127.0.0.1,port=6380,state=online,offset=462,lag=0
+slave1:ip=127.0.0.1,port=6381,state=online,offset=462,lag=1
+
+
+```
+
+**测试**
+
+```bash
+9、测试读写
+# 主机可读写
+127.0.0.1:6380> keys *
+1) "a1"
+127.0.0.1:6380> get a1
+"v1"
+
+# 从机只读
+127.0.0.1:6380> get a1
+"v1"
+127.0.0.1:6380> set a2 v2
+(error) READONLY You can't write against a read only replica.
+
+10、当从机挂掉（shutdown）后，在主机set 2个数据，重启，6380又变为了主服务
+127.0.0.1:6380> info replication
+# Replication
+role:master
+connected_slaves:0
+
+# 需要再次配置使它成为从机，此时主机新增数据才复制过来
+127.0.0.1:6380> slaveof 127.0.0.1 6379
+127.0.0.1:6380> keys *
+1) "a1"
+2) "a3"
+3) "a2"
+
+11、当主机挂掉，从机还认挂掉的主机，不做篡位。主机重启后，依然有这些从机。
+127.0.0.1:6380> info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6379
+master_link_status:down
+127.0.0.1:6381> info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6379
+master_link_status:down
+# 大哥重启，仍然是大哥
+127.0.0.1:6379> shutdown
+not connected> 
+[root@hecs-233798 myredis]# redis-server redis6379.conf 
+[root@hecs-233798 myredis]# redis-cli
+127.0.0.1:6379> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=127.0.0.1,port=6380,state=online,offset=28,lag=1
+slave1:ip=127.0.0.1,port=6381,state=online,offset=28,lag=1
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 8.2.哨兵模式 (sentinel)
+
+反客为主：当一个 master 宕机后，后面的 slave 可以立刻升为 master，其后面的 slave 不用做任何修改。用 slaveof no one 指令将从机变为主机。而哨兵模式是**反客为主的自动版**，能够后台监控主机是否故障，如果故障了根据投票数自动将从库转换为主库。
+
+![image-20231010091120293](C:\Users\syx\AppData\Roaming\Typora\typora-user-images\image-20231010091120293.png)
+
+**当主机挂掉，从机选举产生新的主机**
+
+- 哪个从机会被选举为主机呢？根据优先级别：slave-priority 。
+
+- 原主机重启后会变为从机。
+
+**复制延时**
+
+由于所有的写操作都是先在 Master 上操作，然后同步更新到 Slave 上，所以从 Master 同步到 Slave 机器有一定的延迟，当系统很繁忙的时候，延迟问题会更加严重，Slave 机器数量的增加也会使这个问题更加严重。
+
+**故障恢复**
+
+<img src="C:\Users\syx\AppData\Roaming\Typora\typora-user-images\image-20231010091207052.png" alt="image-20231010091207052" style="zoom:80%;" />
+
+优先级：在 redis.conf 中默认 slave-priority 100，值越小优先级越高。
+
+偏移量：指获得原主机数据最全的概率。
+
+runid：每个 redis 实例启动后都会随机生成一个 40 位的 runid。
+
+
+
+
+# 9.Redis 集群（cluster 模式）
+
+Redis 集群（包括很多小集群）实现了对 Redis 的水平扩容，即启动 N 个 redis 节点，将整个数据库分布存储在这 N 个节点中，每个节点存储总数据的 1/N，即一个小集群存储 1/N 的数据，每个小集群里面维护好自己的 1/N 的数据。
+
+Redis 集群通过分区（partition）来提供一定程度的可用性（availability）： 即使集群中有一部分节点失效或者无法进行通讯， 集群也可以继续处理命令请求。
+
+该模式的 redis 集群特点是：分治、分片。
+
+## 9.1.问题
+1、容量不够，redis 如何进行扩容？
+
+2、并发写操作， redis 如何分摊？
+
+3、另外，主从模式，薪火相传模式，主机宕机，导致 ip 地址发生变化，应用程序中配置需要修改对应的主机地址、端口等信息。
+
+4、之前通过代理主机来解决，但是 redis3.0 中提供了解决方案。就是无中心化集群配置。
+
+## 9.2.集群连接
+
+普通方式登录：可能直接进入读主机，存储数据时，会出现 MOVED 重定向操作，所以，应该以集群方式登录。
+
+![tmp852](C:\Users\syx\AppData\Local\Temp\tmp852.png)
+
+集群登录：redis-cli -c -p 6379 采用集群策略连接，设置数据会自动切换到相应的写主机.
+
+## 9.3.redis cluster 如何分配这六个节点？
+
+1、一个集群至少要有三个主节点。
+
+2、选项 –cluster-replicas 1 ：表示我们希望为集群中的每个主节点创建一个从节点。
+
+3、分配原则尽量保证每个主数据库运行在不同的 IP 地址，每个从库和主库不在一个 IP 地址上。
+
+## 9.4.什么是 slots
+
+一个 Redis 集群包含 16384 个插槽（hash slot），数据库中的每个键都属于这 16384 个插槽的其中一个。集群使用公式 CRC16 (key) % 16384 来计算键 key 属于哪个槽， 其中 CRC16 (key) 语句用于计算键 key 的 CRC16 校验和 。
+
+集群中的每个节点负责处理一部分插槽。 举个例子， 如果一个集群可以有主节点， 其中：
+
+- 节点 A 负责处理 0 号至 5460 号插槽。
+
+- 节点 B 负责处理 5461 号至 10922 号插槽。
+
+- 节点 C 负责处理 10923 号至 16383 号插槽。
+
+## 9.5.在集群中录入值
+
+在 redis-cli 每次录入、查询键值，redis 都会计算出该 key 应该送往的插槽，如果不是该客户端对应服务器的插槽，redis 会报错，并告知应前往的 redis 实例地址和端口。
+
+redis-cli 客户端提供了 –c 参数实现自动重定向。如 redis-cli -c –p 6379 登入后，再录入、查询键值对可以自动重定向。不在一个 slot 下的键值，是不能使用 mget,mset 等多键操作。
+
+## 9.6.故障恢复
+
+1、如果主节点下线？从节点能否自动升为主节点？注意：15 秒超时
+
+2、主节点恢复后，主从关系会如何？主节点回来变成从机。
+
+3、如果所有某一段插槽的主从节点都宕掉，redis 服务是否还能继续？
+
+- 如果某一段插槽的主从都挂掉，而 cluster-require-full-coverage 为 yes ，那么整个集群都挂掉。
+
+- 如果某一段插槽的主从都挂掉，而 cluster-require-full-coverage 为 no ，那么，该插槽数据全都不能使用，也无法存储。
+
+## 9.7.Redis 集群优点
+
+1、实现扩容
+
+2、分摊压力
+
+3、无中心配置相对简单
+
+## 9.8.Redis 集群不足
+
+1、多键操作是不被支持的。
+
+2、多键的 Redis 事务是不被支持的，lua 脚本不被支持。
+
+3、由于集群方案出现较晚，很多公司已经采用了其他的集群方案，而代理或者客户端分片的方案想要迁移至 redis cluster，需要整体迁移而不是逐步过渡，复杂度较大。
 
 
 
