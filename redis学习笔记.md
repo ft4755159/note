@@ -1872,7 +1872,7 @@ Redis 集群通过分区（partition）来提供一定程度的可用性（avail
 
 普通方式登录：可能直接进入读主机，存储数据时，会出现 MOVED 重定向操作，所以，应该以集群方式登录。
 
-![tmp852](C:\Users\syx\AppData\Local\Temp\tmp852.png)
+![tmp852](images/Quicker_20231010_113738.png)
 
 集群登录：redis-cli -c -p 6379 采用集群策略连接，设置数据会自动切换到相应的写主机.
 
