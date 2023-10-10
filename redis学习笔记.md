@@ -68,7 +68,7 @@
 
 
 
-![image-20230928113822471](images\image-20230928113822471.png)
+<img src="images\image-20230928113822471.png" alt="image-20230928113822471" style="zoom:80%;" />
 
 ## 1.5.操作
 
