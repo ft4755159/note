@@ -34,7 +34,7 @@
 
 **串行 vs 多线程 + 锁（memcached） vs 单线程 + 多路 IO 复用 (Redis)**（与 Memcache 三点不同：支持多数据类型，支持持久化，单线程 + 多路 IO 复用） 。
 
-![image-20230928144814738](images\image-20230928144814738.png)
+![image-20230928144814738](images/image-20230928144814738.png)
 
 <img src="images\image-20230928144905732.png" alt="image-20230928144905732" style="zoom:80%;" />
 
