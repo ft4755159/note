@@ -1840,11 +1840,38 @@ slave1:ip=127.0.0.1,port=6381,state=online,offset=28,lag=1
 
 <img src="images\image-20231010091207052.png" alt="image-20231010091207052" style="zoom:80%;" />
 
-优先级：在 redis.conf 中默认 slave-priority 100，值越小优先级越高。
+优先级：在 redis.conf 中默认 replica-priority 100，值越小优先级越高。（redis6.2.1）
 
 偏移量：指获得原主机数据最全的概率。
 
 runid：每个 redis 实例启动后都会随机生成一个 40 位的 runid。
+
+**配置**
+
+```bash
+1、准备好1主2从环境 6379为主机 6380 6381 为从机
+2、自定义的myredis目录下新建sentinel.conf文件，名字绝不能错
+3、配置哨兵，填写内容
+sentinel monitor mymaster 127.0.0.1 6379 1
+其中mymaster为监控对象起的服务器名称，1为至少有多少个哨兵同意迁移的数量。
+4、启动哨兵
+[root@hecs-233798 myredis]# redis-sentinel sentinel.conf
+redis做压测可以用自带的redis-benchmark工具
+
+5、当主机挂掉，从机选举中产生新的主机
+(大概10秒左右可以看到哨兵窗口日志，切换了新的主机)
+哪个从机会被选举为主机呢？根据优先级别：slave-priority
+原主机重启后会变为从机。
+6、复制延时
+由于所有的写操作都是先在Master上操作，然后同步更新到Slave上，所以从Master
+同步到Slave机器有一定的延迟，当系统很繁忙的时候，延迟问题会更加严重，Slave
+机器数量的增加也会使这个问题更加严重。
+7、如果使用Jedis连接池会通过刚刚设置的"mymaster"锁定主机
+18795:X 10 Oct 2023 15:28:10.010 # +switch-master mymaster 127.0.0.1 6379 127.0.0.1 6381
+此处主机已经切换成 127.0.0.1 6381 
+```
+
+
 
 
 
