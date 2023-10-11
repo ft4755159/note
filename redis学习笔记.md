@@ -2193,7 +2193,7 @@ key 对应的数据在数据源并不存在，每次针对此 key 的请求从�
 
 缓存穿透发生的原因：黑客或者其他非正常用户频繁进行很多非正常的 url 访问，使得 redis 查询不到数据库。
 
-<img src="D:\MDnote\images\image-20231011161738240.png" alt="image-20231011161738240" style="zoom:80%;" />
+<img src="images\image-20231011161738240.png" alt="image-20231011161738240" style="zoom:80%;" />
 
 ### 10.1.2.解决方案
 
@@ -2219,7 +2219,7 @@ key 对应的数据存在，但在 redis 中过期，此时若有大量并发请
 
 缓存击穿发生的原因：redis 某个 key 过期了，大量访问使用这个 key（热门 key）。
 
-<img src="D:\MDnote\images\image-20231011163408672.png" alt="image-20231011163408672" style="zoom:80%;" />
+<img src="images\image-20231011163408672.png" alt="image-20231011163408672" style="zoom:80%;" />
 
 ### 10.2.2.解决方案
 
@@ -2236,7 +2236,7 @@ key 可能会在某些时间点被超高并发地访问，是一种非常 “热
 - 当操作返回成功时，再进行 load db 的操作，并回设缓存，最后删除 mutex key；
 - 当操作返回失败，证明有线程在 load db，当前线程睡眠一段时间再重试整个 get 缓存的方法。
 
-<img src="D:\MDnote\images\image-20231011163602482.png" alt="image-20231011163602482" style="zoom:80%;" />
+<img src="images\image-20231011163602482.png" alt="image-20231011163602482" style="zoom:80%;" />
 
 
 
@@ -2248,11 +2248,11 @@ key 对应的数据存在，但在 redis 中过期，此时若有大量并发请
 
 缓存雪崩与缓存击穿的区别在于这里针对很多 key 缓存，前者则是某一个 key 正常访问。
 
-<img src="D:\MDnote\images\image-20231011163728697.png" alt="image-20231011163728697" style="zoom:80%;" />
+<img src="images\image-20231011163728697.png" alt="image-20231011163728697" style="zoom:80%;" />
 
 **缓存失效瞬间：**
 
-<img src="D:\MDnote\images\image-20231011163758984.png" alt="image-20231011163758984" style="zoom:80%;" />
+<img src="images\image-20231011163758984.png" alt="image-20231011163758984" style="zoom:80%;" />
 
 ### 10.3.2.解决方案
 
@@ -2291,7 +2291,7 @@ key 对应的数据存在，但在 redis 中过期，此时若有大量并发请
 
 ### 10.4.2.解决方案：使用 redis 实现分布式锁
 
-<img src="D:\MDnote\images\image-20231011164313356.png" alt="image-20231011164313356" style="zoom:80%;" />
+<img src="images\image-20231011164313356.png" alt="image-20231011164313356" style="zoom:80%;" />
 
 setnx：通过该命令尝试获得锁，没有获得锁的线程会不断等待尝试。
 
@@ -2337,7 +2337,7 @@ IO 多线程其实指**客户端交互部分**的**网络 IO** 交互处理模�
 
 Redis 6 加入多线程，但跟 Memcached 这种从 IO 处理到数据访问多线程的实现模式有些差异。Redis 的多线程部分只是用来处理网络数据的读写和协议解析，执行命令仍然是单线程。之所以这么设计是不想因为多线程而变得复杂，需要去控制 key、lua、事务，LPUSH/LPOP 等等的并发问题。整体的设计大体如下:
 
-<img src="D:\MDnote\images\image-20231011164503356.png" alt="image-20231011164503356" style="zoom:80%;" />
+<img src="images\image-20231011164503356.png" alt="image-20231011164503356" style="zoom:80%;" />
 
 另外，多线程 IO 默认也是不开启的，需要再配置文件中配置：
 
