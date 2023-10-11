@@ -1884,6 +1884,220 @@ Redis 集群通过分区（partition）来提供一定程度的可用性（avail
 
 该模式的 redis 集群特点是：分治、分片。
 
+**集群搭建**
+
+1、删除持久化文件 rdb aof
+
+2、制作6个实例 6379 6380 6381 6389 6390 6391
+
+- 配置基本信息
+
+  开启daemonize yes
+  **Pid文件名字**
+  **指定端口号**
+  Log文件名字
+  **Dump.rdb名字**
+  Appendonly关掉或者换名字
+
+- redis cluster 配置修改
+
+  cluster-enabled **yes** 打开集群模式
+  cluster-config-file **nodes-6379.conf** 设定节点配置文件名
+  cluster-node-timeout **15000** 设定节点失联时间，超过该时间（毫秒），集群自动进
+  行主从切换。
+
+**redis6379.conf 以这个为准**
+
+```bash
+include /myredis/redis.conf
+pidfile "/var/run/redis_6379.pid"
+port 6379
+dbfilename "dump6379.rdb"
+cluster-enabled yes
+cluster-config-file nodes-6379.conf
+cluster-node-timeout 15000
+```
+
+3、复制出剩余5个配置文件
+
+```bash
+-rw-r--r-- 1 root root   182 Oct 11 10:28 redis6379.conf
+-rw-r--r-- 1 root root   182 Oct 11 10:32 redis6380.conf
+-rw-r--r-- 1 root root   182 Oct 11 10:32 redis6381.conf
+-rw-r--r-- 1 root root   182 Oct 11 10:32 redis6389.conf
+-rw-r--r-- 1 root root   182 Oct 11 10:32 redis6390.conf
+-rw-r--r-- 1 root root   182 Oct 11 10:32 redis6391.conf
+```
+
+4、vim进去每个配置文件改成自己对应的参数（6379->6380）
+
+`:%s/6379/6380`
+
+5、启动6个redis服务
+
+```bash
+[root@hecs-233798 myredis]# redis-server redis6379.conf 
+[root@hecs-233798 myredis]# redis-server redis6380.conf 
+[root@hecs-233798 myredis]# redis-server redis6381.conf 
+[root@hecs-233798 myredis]# redis-server redis6389.conf 
+[root@hecs-233798 myredis]# redis-server redis6390.conf 
+[root@hecs-233798 myredis]# redis-server redis6391.conf 
+```
+
+6、将六个节点合成一个集群
+
+组合之前，请**确保所有redis实例启动**后，nodes-xxxx.conf文件都生成正常。
+
+**合体**
+
+```bash
+cd /opt/redis-6.2.1/src # 因为依赖redis-trib.rb环境，redis6.2.1默认不需要安装
+redis-cli --cluster create --cluster-replicas 1 127.0.0.1:6379 127.0.0.1:6380 127.0.0.1:6381 127.0.0.1:6389 127.0.0.1:6390 127.0.0.1:6391
+```
+
+**有时不能用127.0.0.1，请用真实IP地址**
+**--cluster-replicas 1 采用最简单的方式配置集群，一台主机，一台从机，正好三组**
+
+**集群方式连接**
+
+```bash
+[root@hecs-233798 src]# redis-cli -c -p 6379
+```
+
+7、通过cluster nodes命令查看集群信息
+
+```bash
+127.0.0.1:6379> cluster nodes
+28ea07e6a784a27052d884099cdc26ae74772a01 127.0.0.1:6391@16391 slave b56b49fa0540f4678bed95222d1867a110ea86c9 0 1696995164000 2 connected
+27893ede2d7880524aac32da320280636df0ff63 127.0.0.1:6379@16379 myself,master - 0 1696995163000 1 connected 0-5460
+66b929d51f52b58709aeb929862dfc899ed29814 127.0.0.1:6390@16390 slave 27893ede2d7880524aac32da320280636df0ff63 0 1696995164650 1 connected
+b56b49fa0540f4678bed95222d1867a110ea86c9 127.0.0.1:6380@16380 master - 0 1696995165000 2 connected 5461-10922
+480e1414a54d5bb9d3dd054e8c634210c963e7fb 127.0.0.1:6389@16389 slave 39e4d8673ec670b2c9672c2a18330c80df7e1d2c 0 1696995164000 3 connected
+39e4d8673ec670b2c9672c2a18330c80df7e1d2c 127.0.0.1:6381@16381 master - 0 1696995165653 3 connected 10923-16383
+```
+
+8、redis cluster如何分配这六个节点？
+
+一个集群至少要有**三个主节点**。
+选项--cluster-replicas 1表示我们希望为集群中的每个主节点创建一个从节点。
+分配原则尽量保证每个主数据库运行在不同的IP地址，每个从库和主库不在一个IP地
+址上。
+
+9、slots 插槽
+
+```bash
+[OK]All nodes agree about slots configuration.
+>>Check for open slots...
+>>Check slots coverage...
+[OK]All 16384 slots covered.
+```
+
+一个Redis集群包含16384个插槽(hashslot)，
+数据库中的每个键都属于这16384个插槽的其中一个，
+
+集群使用公式CRC16(key)%16384来计算键key属于哪个槽，
+其中CRC16(key)语句用于计算键key的CRC16校验和。
+
+集群中的每个节点负责处理一部分插槽。举个例子，如果一个集群可以有主节点，
+其中：
+节点A负责处理0号至5460号插槽。
+节点B负责处理5461号至10922号插槽。
+节点C负责处理10923号至16383号插槽。
+
+10、在集群中录入值
+
+```bash
+127.0.0.1:6379> set k1 v1
+-> Redirected to slot [12706] located at 127.0.0.1:6381 # 进入6381储存
+OK
+127.0.0.1:6381> set k2 v2
+-> Redirected to slot [449] located at 127.0.0.1:6379	# 回到6379储存
+OK
+127.0.0.1:6379> mset name lucy age 20 # mset批量插入失败
+(error) CROSSSLOT Keys in request don't hash to the same slot 
+```
+
+mset 如何插入，获取？
+
+```bash
+127.0.0.1:6379> mset name{user} lucy age{user} 20
+-> Redirected to slot [5474] located at 127.0.0.1:6380
+OK
+127.0.0.1:6380> get name{user}
+"lucy"
+127.0.0.1:6380> get age{user}
+"20"
+127.0.0.1:6380> mget name{user} age{user}
+1) "lucy"
+2) "20"
+```
+
+11、计算插槽
+
+```bash
+127.0.0.1:6380> cluster keyslot k1	# 计算k1的插槽位置
+(integer) 12706
+127.0.0.1:6380> cluster countkeysinslot 12706
+(integer) 0							# 返回0，没有找到
+127.0.0.1:6380> get k1				# 切换到插槽所在的库中重试
+-> Redirected to slot [12706] located at 127.0.0.1:6381
+"v1"
+127.0.0.1:6381> cluster countkeysinslot 12706
+(integer) 1							# 返回正确
+# cluster countkeysinslot <slots>    只能查看当前库自己存储范围内的插槽
+```
+
+12、故障恢复
+
+如果主节点下线？从节点能否自动升为主节点？注意：默认15秒超时
+
+```bash
+# 当前6379的slave是6390，现在让他挂掉
+127.0.0.1:6379> info replication
+...
+role:master
+connected_slaves:1
+slave0:ip=127.0.0.1,port=6390,state=online,offset=21836,lag=1
+...
+127.0.0.1:6379> shutdown
+# 6379 已经无法访问
+[root@hecs-233798 src]# redis-cli -c -p 6379
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+not connected> 
+# 进入6380查看集群信息，可以看到6379挂掉，他的slave 6390 变成 master
+[root@hecs-233798 src]# redis-cli -c -p 6380
+127.0.0.1:6380> 
+127.0.0.1:6380> cluster nodes
+66b929d51f52b58709aeb929862dfc899ed29814 127.0.0.1:6390@16390 master - 0 1697010591010 7 connected 0-5460
+27893ede2d7880524aac32da320280636df0ff63 127.0.0.1:6379@16379 master,fail - 1697010292245 1697010288000 1 disconnected
+...
+# 现在重新启动6379，再次查看，6379已经变成slave
+[root@hecs-233798 myredis]# redis-server redis6379.conf 
+
+127.0.0.1:6380> cluster nodes
+66b929d51f52b58709aeb929862dfc899ed29814 127.0.0.1:6390@16390 master - 0 1697010916000 7 connected 0-5460
+27893ede2d7880524aac32da320280636df0ff63 127.0.0.1:6379@16379 slave 66b929d51f52b58709aeb929862dfc899ed29814 0 1697010916000 7 connected
+...
+
+
+```
+
+
+
+主节点恢复后，主从关系会如何？主节点回来变成从机。
+
+如果所有某一段插槽的主从节点都宕掉，redis服务是否还能继续？
+
+如果某一段插槽的主从都挂掉，而cluster-require-full-coverage为yes,那么，整个
+集群都挂掉。
+
+如果某一段插槽的主从都挂掉，而cluster--require-full-coverage为no,那么，该插槽
+数据全都不能使用，也无法存储。
+
+redis.conf中的参数cluster-require-full-coverage
+
+
+
 ## 9.1.问题
 1、容量不够，redis 如何进行扩容？
 
@@ -1954,6 +2168,186 @@ redis-cli 客户端提供了 –c 参数实现自动重定向。如 redis-cli -c
 2、多键的 Redis 事务是不被支持的，lua 脚本不被支持。
 
 3、由于集群方案出现较晚，很多公司已经采用了其他的集群方案，而代理或者客户端分片的方案想要迁移至 redis cluster，需要整体迁移而不是逐步过渡，复杂度较大。
+
+
+
+# 10.Redis 应用问题解决
+
+## 10.1.缓存穿透
+
+### 10.1.1.问题描述
+
+key 对应的数据在数据源并不存在，每次针对此 key 的请求从缓存获取不到，请求都会压到数据源（数据库），从而可能压垮数据源。
+
+比如用一个不存在的用户 id 获取用户信息，不论缓存还是数据库都没有，若黑客利用此漏洞进行攻击可能压垮数据库。
+
+缓存穿透发生的条件：
+
+1、应用服务器压力变大
+
+2、redis 命中率降低
+
+3、一直查询数据库，使得数据库压力太大而压垮
+
+其实 redis 在这个过程中一直平稳运行，崩溃的是我们的数据库（如 MySQL）。
+
+缓存穿透发生的原因：黑客或者其他非正常用户频繁进行很多非正常的 url 访问，使得 redis 查询不到数据库。
+
+<img src="D:\MDnote\images\image-20231011161738240.png" alt="image-20231011161738240" style="zoom:80%;" />
+
+### 10.1.2.解决方案
+
+1、**对空值缓存**：如果一个查询返回的数据为空（不管是数据是否不存在），我们仍然把这个空结果（null）进行缓存，设置空结果的过期时间会很短，最长不超过五分钟。
+
+2、**设置可访问的名单（白名单）**：使用 bitmaps 类型定义一个可以访问的名单，名单 id 作为 bitmaps 的偏移量，每次访问和 bitmap 里面的 id 进行比较，如果访问 id 不在 bitmaps 里面，进行拦截，不允许访问。
+
+3、**采用布隆过滤器**：布隆过滤器（Bloom Filter）是 1970 年由布隆提出的。它实际上是一个很长的二进制向量 (位图) 和一系列随机映射函数（哈希函数）。布隆过滤器可以用于检索一个元素是否在一个集合中。它的优点是空间效率和查询时间都远远超过一般的算法，缺点是有一定的误识别率和删除困难。
+
+4、**进行实时监控**：当发现 Redis 的命中率开始急速降低，需要排查访问对象和访问的数据，和运维人员配合，可以设置黑名单限制服务。
+
+## 10.2.缓存击穿
+
+### 10.2.1.问题描述
+
+key 对应的数据存在，但在 redis 中过期，此时若有大量并发请求过来，这些请求发现缓存过期一般都会从后端数据库加载数据并回设到缓存，这个时候大并发的请求可能会瞬间把后端数据库压垮。
+
+缓存击穿的现象：
+
+1、数据库访问压力瞬时增加，数据库崩溃
+2、redis 里面没有出现大量 key 过期
+3、redis 正常运行
+
+缓存击穿发生的原因：redis 某个 key 过期了，大量访问使用这个 key（热门 key）。
+
+<img src="D:\MDnote\images\image-20231011163408672.png" alt="image-20231011163408672" style="zoom:80%;" />
+
+### 10.2.2.解决方案
+
+key 可能会在某些时间点被超高并发地访问，是一种非常 “热点” 的数据。
+
+1、**预先设置热门数据**：在 redis 高峰访问之前，把一些热门数据提前存入到 redis 里面，加大这些热门数据 key 的时长。
+
+2、**实时调整**：现场监控哪些数据热门，实时调整 key 的过期时长。
+
+3、**使用锁**：
+
+- 就是在缓存失效的时候（判断拿出来的值为空），不是立即去 load db。
+- 先使用缓存工具的某些带成功操作返回值的操作（比如 Redis 的 SETNX）去 set 一个 mutex key。
+- 当操作返回成功时，再进行 load db 的操作，并回设缓存，最后删除 mutex key；
+- 当操作返回失败，证明有线程在 load db，当前线程睡眠一段时间再重试整个 get 缓存的方法。
+
+<img src="D:\MDnote\images\image-20231011163602482.png" alt="image-20231011163602482" style="zoom:80%;" />
+
+
+
+## 10.3.缓存雪崩
+
+### 10.3.1.问题描述
+
+key 对应的数据存在，但在 redis 中过期，此时若有大量并发请求过来，这些请求发现缓存过期一般都会从后端数据库加载数据并回设到缓存，这个时候大并发的请求可能会瞬间把后端数据库压垮。
+
+缓存雪崩与缓存击穿的区别在于这里针对很多 key 缓存，前者则是某一个 key 正常访问。
+
+<img src="D:\MDnote\images\image-20231011163728697.png" alt="image-20231011163728697" style="zoom:80%;" />
+
+**缓存失效瞬间：**
+
+<img src="D:\MDnote\images\image-20231011163758984.png" alt="image-20231011163758984" style="zoom:80%;" />
+
+### 10.3.2.解决方案
+
+**构建多级缓存架构**：nginx 缓存 + redis 缓存 + 其他缓存（ehcache 等）。
+
+**使用锁或队列**：用加锁或者队列的方式来保证不会有大量的线程对数据库一次性进行读写，从而避免失效时大量的并发请求落到底层存储系统上，该方法不适用高并发情况。
+
+**设置过期标志更新缓存**：记录缓存数据是否过期（设置提前量），如果过期会触发通知另外的线程在后台去更新实际 key 的缓存。
+
+**将缓存失效时间分散开**：比如可以在原有的失效时间基础上增加一个随机值，比如 1-5 分钟随机，这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件。
+
+## 10.4.分布式锁
+
+### 10.4.1.问题描述
+
+随着业务发展的需要，原单体单机部署的系统被演化成分布式集群系统后，由于分布式系统多线程的特点以及分布在不同机器上，这将使原单机部署情况下的并发控制锁策略失效，单纯的 Java API 并不能提供分布式锁的能力。为了解决这个问题就需要一种跨 JVM 的互斥机制来控制共享资源的访问，这就是分布式锁要解决的问题！
+
+分布式锁主流的实现方案：
+
+1、基于数据库实现分布式锁
+
+2、基于缓存（Redis 等）
+
+3、基于 Zookeeper
+
+根据实现方式，分布式锁还可以分为类 CAS 自旋式分布式锁以及 event 事件类型分布式锁：
+
+1、类 CAS 自旋式分布式锁：询问的方式，类似 java 并发编程中的线程获询问的方式尝试加锁，如 mysql、redis。
+2、另外一类是 event 事件通知进程后续锁的变化，轮询向外的过程，如 zookeeper、etcd。
+
+每一种分布式锁解决方案都有各自的优缺点：
+
+1、性能：redis 最高
+
+2、可靠性：zookeeper 最高
+
+### 10.4.2.解决方案：使用 redis 实现分布式锁
+
+<img src="D:\MDnote\images\image-20231011164313356.png" alt="image-20231011164313356" style="zoom:80%;" />
+
+setnx：通过该命令尝试获得锁，没有获得锁的线程会不断等待尝试。
+
+set key ex 3000nx：设置过期时间，自动释放锁，解决当某一个业务异常而导致锁无法释放的问题。但是当业务运行超过过期时间时，开辟监控线程增加该业务的运行时间，直到运行结束，释放锁。
+
+uuid：设置 uuid，释放前获取这个值，判断是否自己的锁，防止误删锁，造成没锁的情况。
+
+## 10.5.RedLock
+
+Redlock 是一种算法，Redlock 也就是 Redis Distributed Lock，可用实现多节点 redis 的分布式锁。RedLock 官方推荐，Redisson 完成了对 Redlock 算法封装。
+
+此种方式具有以下特性：
+
+- 互斥访问：即永远只有一个 client 能拿到锁。
+
+- 避免死锁：最终 client 都可能拿到锁，不会出现死锁的情况，即使锁定资源的服务崩溃或者分区，仍然能释放锁。
+
+- 容错性：只要大部分 Redis 节点存活（一半以上），就可以正常提供服务
+
+
+
+RedLock 原理（了解）
+
+1、获取当前 Unix 时间，以毫秒为单位。
+
+2、依次尝试从 N 个实例，使用相同的 key 和随机值获取锁。在步骤 2，当向 Redis 设置锁时，客户端应该设置一个网络连接和响应超时时间，这个超时时间应该小于锁的失效时间。例如你的锁自动失效时间为 10 秒，则超时时间应该在 5-50 毫秒之间。这样可以避免服务器端 Redis 已经挂掉的情况下，客户端还在死死地等待响应结果。如果服务器端没有在规定时间内响应，客户端应该尽快尝试另外一个 Redis 实例。
+
+3、客户端使用当前时间减去开始获取锁时间（步骤 1 记录的时间）就得到获取锁使用的时间。当且仅当从大多数（这里是 3 个节点）的 Redis 节点都取到锁，并且使用的时间小于锁失效时间时，锁才算获取成功。
+
+4、如果取到了锁，key 的真正有效时间等于有效时间减去获取锁所使用的时间（步骤 3 计算的结果）。
+
+5、如果因为某些原因，获取锁失败（没有在至少 N/2+1 个 Redis 实例取到锁或者取锁时间已经超过了有效时间），客户端应该在所有的 Redis 实例上进行解锁（即便某些 Redis 实例根本就没有加锁成功）。
+
+# 11.Redis IO 多线程
+
+## 11.1.简介
+
+Redis6 终于支撑多线程了，告别单线程了吗？
+
+IO 多线程其实指**客户端交互部分**的**网络 IO** 交互处理模块 **多线程**，而非**执行命令多线程**。Redis6 执行命令依然是单线程。
+
+## 11.2.原理架构
+
+Redis 6 加入多线程，但跟 Memcached 这种从 IO 处理到数据访问多线程的实现模式有些差异。Redis 的多线程部分只是用来处理网络数据的读写和协议解析，执行命令仍然是单线程。之所以这么设计是不想因为多线程而变得复杂，需要去控制 key、lua、事务，LPUSH/LPOP 等等的并发问题。整体的设计大体如下:
+
+<img src="D:\MDnote\images\image-20231011164503356.png" alt="image-20231011164503356" style="zoom:80%;" />
+
+另外，多线程 IO 默认也是不开启的，需要再配置文件中配置：
+
+- io-threads-do-reads yes
+
+- io-threads 4
+
+
+
+
 
 
 
