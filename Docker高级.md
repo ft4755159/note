@@ -492,6 +492,358 @@ root@hecs-233798:/data# redis-cli --cluster check 192.168.0.86:6381
 
 # 3.Docker Swarm 集群部署（动力节点）
 
+## 3.1.swarm 理论基础
+
+**3.1.1.简介**
+
+Docker Swarm 是由 Docker 公司推出的 Docker 的原生集群管理系统， 它将一个 Docker
+主机池变成了一个单独的虚拟主机，用户只需通过简单的 API 即可实现与 Docker 集群的通
+信。 Docker Swarm 使用 GO 语言开发。从 Docker 1.12.0 版本开始， Docker Swarm 已经内置于
+
+Docker 引擎中，无需再专门的进行安装配置。
+Docker Swarm 在 Docker 官网的地址为： https://docs.docker.com/engine/swarm/
+
+**3.1.2.节点架构**
+
+（1） 架构图
+
+<img src="images\image-20231025162902927.png" alt="image-20231025162902927" style="zoom:80%;" />
+
+（2） swarm node  
+
+从物理上讲， 一个 Swarm 是由若干安装了 Docker Engine 的物理机或者虚拟机组成，这
+些主机上的 Docker Engine 都采用 Swarm 模式运行。
+从逻辑上讲，一个 Swarm 由若干节点 node 构成，每个 node 最终会落实在一个物理
+Docker 主机上，但一个物理 Docker 主机并不一定就是一个 node。即 swarm node 与 Docker
+主机并不是一对一的关系。
+swarm node 共有两种类型： manager 与 worker。
+
+（3） Manager
+
+Manager 节点用于维护 swarm 集群状态、调试 servcie、处理 swarm 集群管理任务。为
+了防止单点故障问题，一个 Swarm 集群一般都会包含多个 manager。这些 manager 间通过
+Raft 算法维护着一致性。
+
+（4） Worker
+
+Worker 节点用于在其 Contiainer 中运行 task 任务，即对外提供 service 服务。默认情况
+下， manager 节点同时也充当着 worker 角色，可以运行 task 任务。
+
+（5） 角色转换
+
+manager 节点与 worker 节点角色并不是一成不变的，它们之间是可以相互转换的。
+- manager 转变为 worker 称为节点降级
+- worker 转变为 manager 称为节点升级
+
+**3.1.3.服务架构**
+
+（1） 架构图
+
+<img src="images\image-20231025163121338.png" alt="image-20231025163121338" style="zoom:80%;" />
+
+<img src="images\image-20231025163217251.png" alt="image-20231025163217251" style="zoom:80%;" />
+
+（2） service
+
+搭建 docker swarm 集群的目的是为了能够在 swarm 集群中运行应用，为用户提供具备
+更强抗压能力的服务。 docker swarm 中的服务 service 就是一个逻辑概念，表示 swarm 集群
+对外提供的服务。
+
+（3） task
+
+一个 service 最终是通过任务 task 的形式出现在 swarm 的各个节点中，而每个节点中的
+task 又都是通过具体的运行着应用进程的容器对外提供的服务。
+
+（4） 编排器
+
+在 swarm manager 中具有一个编排器，用于管理副本 task 任务的创建与停止。例如，
+当在 swarm manager 中定义一个具有 3 个 task 副本任务的 service 时， 编排器首先会创建 3
+个 task，为每个 task 分配一个 taskID，并通过分配器为每个 task 分配一个虚拟 IP，即 VIP。
+然后再将该 task 注册到内置的 DNS 中。当 service 的某 task 不可用时， 编排器会在 DNS 中  
+注销该 task。
+
+（5） 分发器
+
+在 swarm manager 中具有一个分发器，用于完成对副本 task 任务的监听、调度等操作。
+在前面的例子中，当编排器创建了 3 个 task 副本任务后，会调用分发器为每个 task 分配节
+点。 分发器首先会在 swarm 集群的所有节点中找到 3 个 available node 可用节点，每个节点
+上分配一个 task。而每个 task 就像是一个“插槽”， 分发器会在每个“插槽”中放入一个应
+用容器。每个应用容器其实就是一个具体的 task 实例。一旦应用容器运行起来， 分发器就
+可以监测到其运行状态，即 task 的运行状态。
+如果容器不可用或被终止， task 也将被终止。此时编排器会立即在内置 DNS 中注销该
+task，然后编排器会再生成一个新的 task，并在 DNS 中进行注册，然后再调用分发器为之分
+配一个新的 available node，然后再该节点上再运行应用容器。 编排器始终维护着 3 个 task
+副本任务。
+分发器除了为 task 分配节点外，还实现了对访问请求的负载均衡。当有客户端来访问
+swarm 提供的 service 服务时，该请求会被 manager 处理：根据其内置 DNS，实现访问的负
+载均衡。
+
+**3.1.4.服务部署模式**
+
+（1） 官方图
+
+service 以副本任务 task 的形式部署在 swarm 集群节点上。根据 task 数量与节点数量的
+关系，常见的 service 部署模式有两种： replicated 模式与 global 模式。
+
+<img src="images\image-20231025163423853.png" alt="image-20231025163423853" style="zoom:80%;" />
+
+（2） replicated 模式
+
+replicated 模式，即副本模式， service 的默认部署模式。需要指定 task 的数量。当需要
+的副本任务 task 数量不等于 swarm 集群的节点数量时，就需要使用 replicated 模式。 manager
+中的分发器会找到指定 task 个数的 available node 可用节点，然后为这些节点中的每个节点
+分配一个或若干个 task。
+
+（3） global 模式
+
+global 模式，即全局模式。 分发器会为每个 swarm 集群节点分配一个 task，不能指定 task
+的数量。 swarm 集群每增加一个节点， 编排器就会创建一个 task，并通过分发器分配到新的
+节点上。
+
+## 3.2.swarm 集群搭建
+
+**3.2.1.需求**
+
+现要搭建一个 docker swarm 集群，包含 5 个 swarm 节点。这 5 个 swarm 节点的 IP 与暂
+时的角色分配如下（注意，是暂时的）：  
+
+<img src="images\image-20231025163620615.png" alt="image-20231025163620615" style="zoom:80%;" />
+
+**3.2.2.克隆主机**
+
+​    克隆两台前面 docker 主机，这两台主机名分别为 docker2、 docker3、 docker4 与 docker5。
+克隆完毕后修改如下配置文件：
+
+- 修改主机名： /etc/hostname
+- 修改网络配置： /etc/sysconfig/network-scripts/ifcfg-ens33
+
+**3.2.3.查看 swarm 激活状态**
+
+​    在任意 docker 主机上通过 docker info 命令可以查看到当前 docker 引擎 Server 端对于
+swarm 的激活状态。由于尚未初始化 swarm 集群，所以这些 docker 主机间没有任何关系，  
+且 swarm 均未被激活。
+
+**3.2.4.swarm 初始化**
+
+​    在主机名为“docker” 的主机上运行 docker swarm init 命令，创建并初始化一个 swarm。
+
+**3.2.5.添加 worker 节点**
+
+​    复制 docker swarm init 命令的响应结果中添加 wroker 节点的命令在 docker4 与 docker5
+节点上运行，将这两个节点添加为 worker 节点。
+
+**3.2.6.添加 manager 节点**
+
+（1） 获取添加命令
+
+​    若要为 swarm 集群添加 manager 节点，需要首先在 namager 节点获取添加命令。
+
+（2） 添加节点
+    复制 docker swarm join-token 命令生成的 manager 添加命令，然后在 docker2 与 docker3
+节点上运行，将这两个节点添加为 manager 节点。
+
+**3.2.7.查看 swarm 节点**
+
+​    在 manager 节点 docker、 docker2、 docker3 上通过 docker node ls 命令可以查看到当前  
+swarm 集群所包含的节点状态数据。
+但在 worker 节点上是不能运行 docker node ls 命令的。
+
+## 3.3.swarm 集群维护
+
+**3.3.1.退出 swarm 集群**
+
+​    当一个节点想从 swarm 集群中退出时，可以通过 docker swarm leave 命令。不过 worker
+节点与 manager 节点的退群方式是不同的。
+
+（1） worker 退群
+    对于 worker 节点退群，直接运行 docker swarm leave 命令即可。
+此时在 manager 节点中查看节点情况，可以看到 docker5 已经 Down 了。  
+
+（2） worker 重新加入
+    首先在 manager 节点上运行 docker swarm join-token worker 命令，生成加入 worker 节点
+的命令。
+复制生成的命令，在 docker5 节点上运行，将此节点添加到 swarm 集群。
+
+（3） 查看节点情况
+    此时在 manager 节点中查看节点情况，可以看到原来的 docker5 依然是 Down，但又新
+增了一个新的 docker5 节点，其状态为 Ready。
+
+
+
+​    此时在 manager 节点通过 docker info 命令可以查看到节点数量变为了 6 个，这增加的
+一个就是两种状态的 docker5。  
+
+（4） 删除 Down 状态节点
+    对于Down状态的节点是完全可以将其删除的。通过在manager节点运行docker node rm
+命令完成。
+
+（5） manager 退群
+    对于 manager 节点，原则上是不推荐直接退群的，这样会导致 swarm 集群的一致性受
+到损坏。如果 manager 执意要退群，可在 docker swarm leave 命令后添加-f 或--force 选项进
+行强制退群。  
+
+**3.3.2.swarm 自动锁定**
+
+（1） swarm 集群自动锁定原理
+    在 manager 集群中， swarm 通过 Raft 日志方式维护了 manager 集群中数据的一致性。
+即在 manager 集群中每个节点通过 manager 间通信方式维护着自己的 Raft 日志。
+    但在通信过程中存在有一种风险： Raft 日志攻击者会通过 Raft 日志数据的传递来访问、
+篡改 manager 节点中的配置或数据。为了防止被攻击， swarm 开启了一种集群自动锁定功能，
+为 manager 间的通信启用了 TLS 加密。用于加密和解密的公钥与私钥，全部都维护在各个节
+点的 Docker 内存中。一旦节点的 Docker 重启，则密钥丢失。
+    swarm 中通过 autolock 标志来设置集群的自动锁定功能：为 true 则开启自动锁定，为
+false 则关闭自动锁定。
+
+（2） 设置自动锁定
+在 manager 节点通过 docker swarm update –autolock=true 命令可以开启当前 swarm 集群
+的自动锁定功能。
+此时查看 manager 的 docker info 可以看到， autolock 已经为 true 了。  
+
+（3） 查看解锁密钥
+如果没有保存 docker swarm update --autolock=true 命令中生成的密钥，也可通过在
+manager 中运行 docker swarm unlock-key 命令查看。  
+
+（4） 关闭一个 manager
+直接关闭 docker3 的 docker 引擎，模拟一个 manager 宕机的情况。
+
+（5） 加入 manager
+    启动 docker3 的 docker 引擎。
+
+​    此时再查看该节点的 docker info，可以看到 Swarm 值为 locked，即当前节点看到的 Swarm
+集群的状态为锁定状态，其若要加入，必须先解锁。  
+
+​    在 docker3 中运行 docker swarm unlock 命令，解锁 swarm。
+
+​    此时再查看节点信息，该 manager 已经加入。
+
+## 3.4.swarm 节点维护
+
+**3.4.1.角色转换**
+
+​    Swarm 集群中节点的角色只有 manager 与 worker，所以其角色也只是在 manager 与
+worker 间的转换。即 worker 升级为 manager，或 manager 降级为 worker。  
+
+（1） worker 升级为 manager
+通过 docker node promote 命令可以将 worker 升级为 manager。例如，下面的命令是将
+docker4 与 docker5 两个节点升级为了 manager，即当前集群中全部为 manager。
+
+（2） manager 降级为 worker
+通过 docker node demote 命令可以将 manager 降级为 worker。例如，下面的命令是将
+docker2 与 docker3 两个节点降级为了 worker。
+
+（3） docker node update 变更角色
+除了通过 docker node demote|promote 可以变更节点角色外，通过 docker node update
+--role [manager|worker] [node]也可变更指定节点的角色。  
+
+​    以下命令将 docker2 与 docker3 两个节点又变为了 manager。
+​    以下命令将 docker4 与 docker5 两个节点又变为了 worker。
+
+**3.4.2.节点标签**
+
+​    swarm 可以通过命令为其节点添加描述性标签，以方便管理员去了解该节点的更多信息。
+
+（1） 添加/修改节点标签
+通过 docker node update --label-add 命令可以为指定 node 添加指定的 key=value 的标签。
+若该标签的 key 已经存在，则会使用新的 value 替换掉该 key 的原 value。不过需要注意的是，
+若要添加或修改多个标签，则需要通过多个--label-add 选项指定。 
+通过 docker node inspect 在查看该节点详情时可看到添加的标签。
+docker node inspect --pretty 可以 key:value 的形式显示信息。
+
+（2） 删除节点标签
+通过 docker node update --label-rm 命令可以为指定的 node 删除指定 key 的标签。同样，
+若要删除多个标签，则需要通过多个--label-rm 选项指定要删除 key 的标签。  
+查看节点详情，发现这两个标签已经消失。
+
+**3.4.3.节点删除**
+
+​    manager 节点通过 docker node rm 命令可以删除一个 Down 状态的、指定的 worker 节点。
+注意，该命令只能删除 worker 节点，不能删除 manager 节点。
+
+（1） 有问题的删除
+    对于 Ready 状态的 worker 节点是无法直接删除的。  
+
+
+
+​    对于 manager 节点也是无法删除的。
+
+
+
+（2） 正确的删除
+    若要删除一个 worker 节点，首先要将该节点的 Docker 关闭，使该节点变为 Down 状态，
+然后再进行删除。
+    关闭 docker2 节点的 Docker 引擎：
+    删除节点：  
+
+（3） 强制删除
+    前面的删除方式有些麻烦，其实也可以通过添加-f 选项来实现强制删除。
+
+​    但对于 manager 节点，强制删除也不能删除。
+
+​    docker node rm –f 命令会使一个节点强制退群，而 docker swarm leave 命令是使当前的
+docker 主机关闭 swarm 模式。  
+
+## 3.5.swarm 安全(PKI)
+
+​    Docker 内置了 PKI（public key infrastructure，公钥基础设施），使得保障发布容器化的业
+务流程系统的安全性变得很简单。
+
+**3.5.1.TLS 安全保障**
+
+​    Swarm 节点之间采用 TLS 来鉴权、授权和加密通信。
+​    具体来说是，当运行 docker swarm init 命令时， Docker 指定当前节点为一个 manager
+节点。默认情况下， manager 节点会生成一个新的 swarm 的 CA 根证书以及一对密钥。 同时，
+manager 节点还会生成两个 token，一个用于添加 worker 节点，一个用于添加 manager 节点。
+每个 token 包含上了 CA 根证书的 digest 和一个随机密钥。 CA 根证书、一对密钥和随机密钥
+都将会被用在节点之间的通信上。
+
+
+
+当有节点加入 Swarm 时， 需要复制 manager 中相应的 docker swarm join 加入命令，并
+在该节点中运行。而这个过程主要是通过随机密钥这种对称验证方式保障通信安全的。  
+
+
+
+一旦节点加入了 Swarm 集群，那么它们间的通信全部都是通过 TLS 加密方式进行的。
+首先是通过 CA 证书对通信对方的身份进行验证，在验证通过后再进行数据通信。而通信的
+数据则是通过随机密钥加密过的。
+
+**12.5.2 CA 数字证书轮换**
+
+（1） 轮换周期
+    Swarm 的 CA 数字证书也是有可能被攻击、篡改的。为了保证 swarm 的数字证书的安全  
+性， Swarm 提供了 CA 数字证书轮换机制，定期更换 CA 数字证书。默认 swarm 的 CA 数字
+证书 90 天轮换一次。
+
+（2） 指定证书
+    那么，用于轮换的新的 CA 数字证书来自于哪里呢？通过 docker swarm ca 命令可以指定
+外部 CA 数字证书，或生成新的 CA 数字证书。无论哪种数字证书变更方式，都需要 CA 根证
+书的加密/解密。而根证书也是会发生变化的，具体见“轮转过程”。
+
+（3） 轮转过程
+    当 manager 运行了 docker swarm ca --rotate 命令后，会按顺序发生下面的事情：
+
+- Docker 会生成一个交叉签名（cross-signed） 根证书， 即新根证书是由旧的根证书签署
+生成的， 这个交叉签名根证书将作为一个过渡性的根证书。这是为了确保节点仍然能够
+信任旧的根证书，也能使用新的根证书验证签名。
+- 在 Docker 17.06 或者更高版本中， Docker 会通知所有节点立即更新根证书。根据 swarm
+中节点数量多少，这个过程可能会花费几分钟时间。
+- 在所有的节点都更新了新 CA 根证书后， manager 会通知所有节点仅信任新的根证书，
+不再信任旧根证书及交叉签名根证书。
+- 所有节点使用新根证书签发自己的数字证书。
+如果直接使用外部的 CA 根证书，那么就不存在交叉签名根证书的生成过程，直接由运
+行docker swarm ca命令的节点通知所有节点立即更新根证书。后续过程与前面的就相同了。  
+
+## 3.6.manager 集群容灾  
+
+
+
+
+
+
+
+
+
+
 # 78.Docker Compose 容器编排
 
 ## 78.1.Docker Compose 简介
@@ -1220,9 +1572,232 @@ save & test
 
 具体使用待有需要时再搞清楚
 
+# 135.几个基础知识
+
+## 135.1.HTTP/HTTPS 协议
+
+（1） 协议
+HTTP 与 HTTPS 协议都是客户端浏览器和服务器间的一种约定，约定如何将服务器中的
+信息下载到本地，并通过浏览器显示出来。
+不同的是， HTTP 协议是一种明文传输协议，其对传输的数据不提供任何加密措施。而
+HTTPS 协议则是通过 SSL/TLS 为数据加密，以保障数据的安全性。  
+
+<img src="images\image-20231024212744614.png" alt="image-20231024212744614" style="zoom:80%;" />
+
+通常情况下， HTTP 会直接与运输层的 TCP 进行通信，默认使用 80 端口号。 但在使用
+SSL/TLS 协议的 HTTPS 后，就演变成了直接与运输层的 SSL/TLS 进行通信，再由 SSL/TLS 与 TCP
+进行通信。即 HTTPS 是间接与 TCP 进行通信的。 HTTPS 默认使用 443 端口号。
+
+（2） SSL/TLS
+SSL， Secure Sockets Layer，安全套接字协议
+TLS， Transport Layer Security，传输层安全协议
+它们主要用于保障在 Internet 上数据传输的安全性与完整性。
+
+（3） 加密验证方式HTTP 协议通过明文传输存在三大风险：
+- 被窃听的风险
+- 被篡改的风险
+- 被冒充的风险 
+
+HTTPS 协议通过<font color= red>用户身份验证</font>与<font color= red>传输加密</font>，大大降低了 HTTP 中的这些风险。
+HTTPS 协议中的身份验证采用的是<font color= red>非对称加密验证</font>方式，而传输加密采用的则是<font color= red>对称加密验证</font>方式。
+
+- 对称加密验证：加密与解密使用的密钥相同。例如，登录使用的账号/密码就属于对称加密验证（用户提交的账号/密码与保存在服务器中的账号/密码必须相同，验证才能成功）。
+- 非对称加密验证：加密与解密使用的密钥不同。其本质上就是数据算法。主要有三类算法：因子分解算法、离散对数算法、椭圆曲线算法。其中，因了分解算法使用最为广泛。
+
+（4） 公钥与私钥
+非对称加密验证中需要一对密钥。其中一个用于加密，一个用于解密，即所谓的公钥与
+私钥。
+- 公钥：可以公开的密钥，是发放给其他人的密钥
+
+- 私钥：非公开的密钥，是只有加密者自己保存的密钥
+
+  公钥与私钥都可用于加密/解密。
+
+- 公钥加密，私钥解密：称为信息加密与信息解密
+
+- 私钥加密，公钥解密：称为数字签名与签名验证
 
 
 
+## 135.2.以故事方式开始 HTTPS 工作原理  
+
+以“特工张三与总部李四的通信故事”来说明 HTTPS 的工作原理。
+
+**（1） 明文通信过程**  
+
+<img src="images\image-20231024213728736.png" alt="image-20231024213728736" style="zoom:80%;" />
+
+存在的问题是，信息可能被劫持（数据被窃取、被篡改），数据非常不安全。
+
+**（2） 使用数字签名加密**
+
+整个通信过程包含两个阶段：通信关系建立阶段与通信阶段。  
+
+<img src="images\image-20231024213833536.png" alt="image-20231024213833536" style="zoom:80%;" />
+
+<img src="images\image-20231024213938451.png" alt="image-20231024213938451" style="zoom:80%;" />
+
+**（3） 钓鱼问题**  
+
+<img src="images\image-20231024214033403.png" alt="image-20231024214033403" style="zoom:80%;" />
+
+**（4） 使用数字证书**
+
+整个通信过程包含三个阶段：通信基础构建阶段、通信关系建立阶段与通信阶段。  
+
+<img src="images\image-20231024214128396.png" alt="image-20231024214128396" style="zoom:80%;" />
+
+<img src="images\image-20231024214217437.png" alt="image-20231024214217437" style="zoom:80%;" />
+
+<img src="images\image-20231024214253892.png" alt="image-20231024214253892" style="zoom:80%;" />
+
+**（5） 对称加密通信**
+
+整个通信过程包含三个阶段：通信基础构建阶段、通信关系建立阶段与通信阶段。通信阶段中的身份验证采用非对称加密验证方式，通信过程采用对称加密验证方式。  
+
+<img src="images\image-20231024214527704.png" alt="image-20231024214527704" style="zoom:80%;" />
+
+<img src="images\image-20231024214553440.png" alt="image-20231024214553440" style="zoom:80%;" />
+
+<img src="images\image-20231024214621571.png" alt="image-20231024214621571" style="zoom:80%;" />
+
+**（6） HTTPS 通信原理**  
+
+<img src="images\image-20231024214702513.png" alt="image-20231024214702513" style="zoom:80%;" />
+
+<img src="images\image-20231024214734494.png" alt="image-20231024214734494" style="zoom:80%;" />
+
+<img src="images\image-20231024214818311.png" alt="image-20231024214818311" style="zoom:80%;" />
+
+
+
+
+
+## 135.3.HTTPS 重要概念
+
+**（1） 数字证书**
+    数字证书，也称为 SSL/TLS 证书， 是互联网通讯中标志通讯各方身份信息的一串数字。
+提供了一种在 Internet 上验证通信实体身份的方式。它是由 CA（Certificate Authority，证书
+权威认证机构，证书中心） 颁发的一种身份证明。它里面包含了该通讯方的公钥、 证书有效  
+时间、 域名及 CA 的数字签名等。 数字证书的一个非常重要的作用就是“防钓鱼”。  
+    全球的 CA（权威证书中心）一共也没有几个，即全球可以颁发数字证书的机构并不多。
+而像我国阿里、腾讯等也都属于这些大的权威证书中心的代理机构。我们可以通过他们来申
+办证书，而他们本身并不具有生成证书的权限。  
+
+**（2） 根证书**
+    数字证书是由 CA（Certificate Authority，证书权威认证机构，证书中心） 颁发的一种身
+份证明，是通过 CA 私钥加密过的。所以，客户端必须具有 CA 公钥才能解密要访问平台服
+务器的数字证书。而这个 CA 公钥就被称为 CA 根证书，也称为根证书。
+    当然，数字证书除了权威证书中心可申请到外，也可自己生成。但自己生成的证书并没
+有在客户端系统中，这时就需要用户在客户端先安装数字证书，并将其添加到相应的“信任”
+状态才可。这就是我们平时如果要在本地电脑中打开网银平台对自己的电子银行进行操作之
+前，会先提示安装根证书的原因。这个安装根证书的提示，就包含网银的数字证书与 CA 根
+证书。
+**（3） 数字摘要**
+    数字摘要是将任意长度的消息变成固定长度的短消息。数字摘要就是利用了 Hash 函数
+的<font color=red> 单向性</font>， 将需要加密的明文“摘要” 成一串 128 位长度数字串。这个数字串又称为数字指
+纹。其单向性体现在： 不同明文“摘要的结果” 一定是不同的， 相同明文“摘要的结果” 必
+定是一致。 但摘要结果无法计算出其原始明文。
+**（4） 数字签名**
+    数字签名，是只有信息的发送者才能产生的别人无法伪造的一段数字串。它是一种类似
+写在纸上的手写物理签名，用于鉴别数字信息是否被篡改的方法。
+数字签名是非对称密钥技术与数字摘要技术的应用。 使用私钥对明文的数字摘要加密，
+形成数字签名；使用公钥对数字签名解密，称为签名验证。  
+
+## 135.4.htpasswd 命令 
+
+registry 私有镜像中心中默认是没有用户认证功能的，可通过 htpasswd 来实现用户认证。
+
+**（1） 简介**
+
+htpasswd 是开源 Web 服务器 Apache HTTP Server 的内置工具，用于创建、更新 HTTP
+基本认证的密码文件。  
+
+需要时再补充。。。
+
+## 135.5.容器的退出状态码
+
+Docker Daemon 通过退出状态码向用户反馈<font color=red>容器中应用</font>的退出方式。
+
+**（1） 状态码分类**
+
+容器退出状态码是[0, 255]范围内的整数，分为三类： 0、 [1,128]与[129,255]。
+- 状态码0表示容器中应用是正常退出，例如通过docker stop命令退出/bin/bash，或docker
+引擎关闭后引发的容器退出/bin/bash 等。
+- [1,128]范围内的状态码，非正常退出状态，表示容器内部运行错误引发的容器无法启动，
+或应用运行出错。
+- [129,255]范围内的状态码，非正常退出状态，表示容器接收到终止信号而退出。
+
+常见的状态码如下：
+
+**（2） 状态码 1**
+
+常见有两种情况可能会引发容器的退出状态码为 1。
+
+- 应用程序内部错误。例如，分母为 0，内存溢出，数组下标越界等。
+
+- Dockerfile 中的无效引用。即 Dockerfile 中引用了不存在的文件，导致容器无法启动。
+
+**（3） 状态码 125**
+
+  容器启动后要执行指定的[command]，但[command]没有运行成功。没有成功的原因通
+  常是[command] 引用了未定义的变量，或执行了没有权限的命令等。
+
+**（4） 状态码 126**
+
+  容器启动后要执行指定的[command]，但[command]没有运行成功。没有成功的原因通
+  常是该[command]的执行缺少依赖。
+  例如， Dockerfile 中要运行 CMD 为[“java”,”-jar”,”demo.jar”]，而该容器中没有 JDK。
+
+**（5） 状态码 127**
+
+  容器启动后要执行指定的[command]，但[command]没有运行成功。没有成功的原因通
+  常是该[command]中引用了不存在的文件或目录。
+  例如， Dockerfile 中要运行 CMD 为[“java”,”-jar”,”demo.jar”]，而该容器中没有 demo.jar。  
+
+**（6） 状态码 128**
+
+由自己开发的容器内的代码触发了退出命令并给出了退出状态码，但状态码不在 0-255
+范围内。此时返回给用户的退出状态码为 128。
+
+**（7） 状态码 130**
+
+当容器中的应用接收到来自操作系统的终止信号时，应用会立即退出，并返回给用户
+130 状态码。
+
+**（8） 状态码 137**
+
+当容器中的应用接收到来自 dockerd 的强制终止信号时会立即退出，并返回给用户 137
+状态码。
+
+**（9） 状态码 143**
+
+当容器接收到来自 dockerd 的优雅终止信号时，如果当前容器并没有用户访问，那么容
+器会立即退出，并返回给用户 143 状态码。如果容器正好有用户访问，那么 dockerd 会等待
+10s。 10s 后会向容器发送 kill 信号，此时返回给用户 137 状态码。  
+
+**（10） 退出状态码查看方式**
+
+查看退出状态码的方式有两种： docker ps –a 与 docker inspcet。  
+
+
+
+## 134.6.容器的重启策略 
+
+docker 容器启动后并不会永远处于运行状态，各种意外都可能会导致容器退出。在生产
+环境下容器退出后采用手动重启方式肯定是非常低效或不可行的。 而 Docker 引擎提供了容
+器的重启策略，通过在容器创建时指定--restart 选项不同的值，来达到不同的重启效果。 其
+取值有以下几种：
+**（1） no**
+默认策略，在容器退出时不重启容器。
+**（2） on-failure[:n]**
+在容器非正常退出时，即退出状态码非 0 的情况下才会重启容器。 其后还可以跟一个整
+型数，表示重启的次数。
+**（3） always**
+只要容器退出就会重启容器。  
+
+**（4） unless-stopped**
+只要容器退出就会重启容器，除非通过 docker stop 或 docker kill 命令停止容器。
 
 
 # CI/CD之jenkins
