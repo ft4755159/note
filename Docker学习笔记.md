@@ -67,7 +67,7 @@ yum install -y yum-utils
 6、设置镜像仓库
 
 ```bash
-yum-config-manager --add-repo
+yum-config-manager --add-repo \
 http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 ```
 

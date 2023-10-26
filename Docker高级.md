@@ -496,12 +496,12 @@ root@hecs-233798:/data# redis-cli --cluster check 192.168.0.86:6381
 
 **3.1.1.简介**
 
-Docker Swarm 是由 Docker 公司推出的 Docker 的原生集群管理系统， 它将一个 Docker
+​    Docker Swarm 是由 Docker 公司推出的 Docker 的原生集群管理系统， 它将一个 Docker
 主机池变成了一个单独的虚拟主机，用户只需通过简单的 API 即可实现与 Docker 集群的通
 信。 Docker Swarm 使用 GO 语言开发。从 Docker 1.12.0 版本开始， Docker Swarm 已经内置于
 
-Docker 引擎中，无需再专门的进行安装配置。
-Docker Swarm 在 Docker 官网的地址为： https://docs.docker.com/engine/swarm/
+​    Docker 引擎中，无需再专门的进行安装配置。
+​    Docker Swarm 在 Docker 官网的地址为： https://docs.docker.com/engine/swarm/
 
 **3.1.2.节点架构**
 
@@ -511,27 +511,27 @@ Docker Swarm 在 Docker 官网的地址为： https://docs.docker.com/engine/swa
 
 （2） swarm node  
 
-从物理上讲， 一个 Swarm 是由若干安装了 Docker Engine 的物理机或者虚拟机组成，这
+​    从物理上讲， 一个 Swarm 是由若干安装了 Docker Engine 的物理机或者虚拟机组成，这
 些主机上的 Docker Engine 都采用 Swarm 模式运行。
-从逻辑上讲，一个 Swarm 由若干节点 node 构成，每个 node 最终会落实在一个物理
+​    从逻辑上讲，一个 Swarm 由若干节点 node 构成，每个 node 最终会落实在一个物理
 Docker 主机上，但一个物理 Docker 主机并不一定就是一个 node。即 swarm node 与 Docker
 主机并不是一对一的关系。
 swarm node 共有两种类型： manager 与 worker。
 
 （3） Manager
 
-Manager 节点用于维护 swarm 集群状态、调试 servcie、处理 swarm 集群管理任务。为
+​    Manager 节点用于维护 swarm 集群状态、调试 servcie、处理 swarm 集群管理任务。为
 了防止单点故障问题，一个 Swarm 集群一般都会包含多个 manager。这些 manager 间通过
 Raft 算法维护着一致性。
 
 （4） Worker
 
-Worker 节点用于在其 Contiainer 中运行 task 任务，即对外提供 service 服务。默认情况
+​    Worker 节点用于在其 Contiainer 中运行 task 任务，即对外提供 service 服务。默认情况
 下， manager 节点同时也充当着 worker 角色，可以运行 task 任务。
 
 （5） 角色转换
 
-manager 节点与 worker 节点角色并不是一成不变的，它们之间是可以相互转换的。
+​    manager 节点与 worker 节点角色并不是一成不变的，它们之间是可以相互转换的。
 - manager 转变为 worker 称为节点降级
 - worker 转变为 manager 称为节点升级
 
@@ -545,18 +545,18 @@ manager 节点与 worker 节点角色并不是一成不变的，它们之间是�
 
 （2） service
 
-搭建 docker swarm 集群的目的是为了能够在 swarm 集群中运行应用，为用户提供具备
+​    搭建 docker swarm 集群的目的是为了能够在 swarm 集群中运行应用，为用户提供具备
 更强抗压能力的服务。 docker swarm 中的服务 service 就是一个逻辑概念，表示 swarm 集群
 对外提供的服务。
 
 （3） task
 
-一个 service 最终是通过任务 task 的形式出现在 swarm 的各个节点中，而每个节点中的
+​    一个 service 最终是通过任务 task 的形式出现在 swarm 的各个节点中，而每个节点中的
 task 又都是通过具体的运行着应用进程的容器对外提供的服务。
 
 （4） 编排器
 
-在 swarm manager 中具有一个编排器，用于管理副本 task 任务的创建与停止。例如，
+​    在 swarm manager 中具有一个编排器，用于管理副本 task 任务的创建与停止。例如，
 当在 swarm manager 中定义一个具有 3 个 task 副本任务的 service 时， 编排器首先会创建 3
 个 task，为每个 task 分配一个 taskID，并通过分配器为每个 task 分配一个虚拟 IP，即 VIP。
 然后再将该 task 注册到内置的 DNS 中。当 service 的某 task 不可用时， 编排器会在 DNS 中  
@@ -564,17 +564,17 @@ task 又都是通过具体的运行着应用进程的容器对外提供的服务
 
 （5） 分发器
 
-在 swarm manager 中具有一个分发器，用于完成对副本 task 任务的监听、调度等操作。
+​    在 swarm manager 中具有一个分发器，用于完成对副本 task 任务的监听、调度等操作。
 在前面的例子中，当编排器创建了 3 个 task 副本任务后，会调用分发器为每个 task 分配节
 点。 分发器首先会在 swarm 集群的所有节点中找到 3 个 available node 可用节点，每个节点
 上分配一个 task。而每个 task 就像是一个“插槽”， 分发器会在每个“插槽”中放入一个应
 用容器。每个应用容器其实就是一个具体的 task 实例。一旦应用容器运行起来， 分发器就
 可以监测到其运行状态，即 task 的运行状态。
-如果容器不可用或被终止， task 也将被终止。此时编排器会立即在内置 DNS 中注销该
+​    如果容器不可用或被终止， task 也将被终止。此时编排器会立即在内置 DNS 中注销该
 task，然后编排器会再生成一个新的 task，并在 DNS 中进行注册，然后再调用分发器为之分
 配一个新的 available node，然后再该节点上再运行应用容器。 编排器始终维护着 3 个 task
 副本任务。
-分发器除了为 task 分配节点外，还实现了对访问请求的负载均衡。当有客户端来访问
+​    分发器除了为 task 分配节点外，还实现了对访问请求的负载均衡。当有客户端来访问
 swarm 提供的 service 服务时，该请求会被 manager 处理：根据其内置 DNS，实现访问的负
 载均衡。
 
@@ -582,71 +582,184 @@ swarm 提供的 service 服务时，该请求会被 manager 处理：根据其�
 
 （1） 官方图
 
-service 以副本任务 task 的形式部署在 swarm 集群节点上。根据 task 数量与节点数量的
+​    service 以副本任务 task 的形式部署在 swarm 集群节点上。根据 task 数量与节点数量的
 关系，常见的 service 部署模式有两种： replicated 模式与 global 模式。
 
 <img src="images\image-20231025163423853.png" alt="image-20231025163423853" style="zoom:80%;" />
 
 （2） replicated 模式
 
-replicated 模式，即副本模式， service 的默认部署模式。需要指定 task 的数量。当需要
+​    replicated 模式，即副本模式， service 的默认部署模式。需要指定 task 的数量。当需要
 的副本任务 task 数量不等于 swarm 集群的节点数量时，就需要使用 replicated 模式。 manager
 中的分发器会找到指定 task 个数的 available node 可用节点，然后为这些节点中的每个节点
 分配一个或若干个 task。
 
 （3） global 模式
 
-global 模式，即全局模式。 分发器会为每个 swarm 集群节点分配一个 task，不能指定 task
+​    global 模式，即全局模式。 分发器会为每个 swarm 集群节点分配一个 task，不能指定 task
 的数量。 swarm 集群每增加一个节点， 编排器就会创建一个 task，并通过分发器分配到新的
 节点上。
 
-## 3.2.swarm 集群搭建
+## 3.2.swarm 集群搭建*
 
-**3.2.1.需求**
+**3.2.1.需求（准备阶段）**
 
 现要搭建一个 docker swarm 集群，包含 5 个 swarm 节点。这 5 个 swarm 节点的 IP 与暂
 时的角色分配如下（注意，是暂时的）：  
 
-<img src="images\image-20231025163620615.png" alt="image-20231025163620615" style="zoom:80%;" />
+| hostname | ip              | role    |
+| -------- | --------------- | ------- |
+| docker1  | 192.168.110.101 | manager |
+| docker2  | 192.168.110.102 | manager |
+| docker3  | 192.168.110.103 | manager |
+| docker4  | 192.168.110.104 | worker  |
+| docker5  | 192.168.110.105 | worker  |
 
 **3.2.2.克隆主机**
 
-​    克隆两台前面 docker 主机，这两台主机名分别为 docker2、 docker3、 docker4 与 docker5。
-克隆完毕后修改如下配置文件：
+​    克隆 docker 主机，这5台主机名分别为docker1、 docker2、 docker3、 docker4 与 docker5。
+克隆完毕后修改如下配置文件（以 docker1 为例）：
 
-- 修改主机名： /etc/hostname
-- 修改网络配置： /etc/sysconfig/network-scripts/ifcfg-ens33
+- 修改主机名： vim /etc/hostname
 
-**3.2.3.查看 swarm 激活状态**
+```bash
+docker1
+```
+
+- 修改网络配置： vim /etc/sysconfig/network-scripts/ifcfg-ens33
+
+```bash
+TYPE="Ethernet"
+PROXY_METHOD="none"
+BROWSER_ONLY="no"
+BOOTPROTO="static"
+DEFROUTE="yes"
+IPV4_FAILURE_FATAL="no"
+IPV6INIT="yes"
+IPV6_AUTOCONF="yes"
+IPV6_DEFROUTE="yes"
+IPV6_FAILURE_FATAL="no"
+IPV6_ADDR_GEN_MODE="stable-privacy"
+NAME="ens33"
+DEVICE="ens33"
+ONBOOT="yes"
+IPADDR=192.168.110.101
+NETMASK=255.255.255.0
+GATEWAY=192.168.110.2
+DNS1=8.8.8.8
+DNS2=8.8.4.4
+```
+
+
+
+**3.2.3.第一步 查看 swarm 激活状态**
 
 ​    在任意 docker 主机上通过 docker info 命令可以查看到当前 docker 引擎 Server 端对于
 swarm 的激活状态。由于尚未初始化 swarm 集群，所以这些 docker 主机间没有任何关系，  
 且 swarm 均未被激活。
 
-**3.2.4.swarm 初始化**
+`docker info`
+
+```bash
+[root@docker1 ~]# docker info
+Client: Docker Engine - Community
+ Version:    24.0.6
+...
+Server:
+...
+ Plugins:
+  Volume: local
+  Network: bridge host ipvlan macvlan null overlay
+  Log: awslogs fluentd gcplogs gelf journald json-file local logentries splunk syslog
+ Swarm: inactive			# 这里说明swarm集群没有活动
+ Runtimes: io.containerd.runc.v2 runc
+ Default Runtime: runc
+ Init Binary: docker-init
+```
+
+​    在任意 docker 主机上通过 docker info 命令可以查看到当前 docker 引擎 Server 端对于
+swarm 的激活状态。由于尚未初始化 swarm 集群，所以这些 docker 主机间没有任何关系，  
+且 swarm 均未被激活。
+
+**3.2.4.第二步 swarm 初始化**
 
 ​    在主机名为“docker” 的主机上运行 docker swarm init 命令，创建并初始化一个 swarm。
 
-**3.2.5.添加 worker 节点**
+```bash
+[root@docker1 ~]# docker swarm init
+Swarm initialized: current node (v4oae6qx5vy7fsfa614zlhnof) is now a manager.
+
+To add a worker to this swarm, run the following command:
+# 如果想添加一个worker，复制这条命令到worker服务器执行
+    docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-07rau3ixwkb2r9c5w900l7ty8 192.168.110.101:2377
+# 如果想添加一个manager，复制这条命令到本服务器执行，会给出一个命令，再复制到manager服务器执行
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+```
+
+**3.2.5.第三步 添加 worker 节点**
 
 ​    复制 docker swarm init 命令的响应结果中添加 wroker 节点的命令在 docker4 与 docker5
 节点上运行，将这两个节点添加为 worker 节点。
 
-**3.2.6.添加 manager 节点**
+```bash
+[root@docker4 ~]# docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-07rau3ixwkb2r9c5w900l7ty8 192.168.110.101:2377
+This node joined a swarm as a worker.
+```
+
+```bash
+[root@docker5 ~]# docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-07rau3ixwkb2r9c5w900l7ty8 192.168.110.101:2377
+This node joined a swarm as a worker.
+```
+
+
+
+**3.2.6.第四步 添加 manager 节点**
 
 （1） 获取添加命令
 
-​    若要为 swarm 集群添加 manager 节点，需要首先在 namager 节点获取添加命令。
+​    若要为 swarm 集群添加 manager 节点，需要首先在 manager 节点获取添加命令。
+
+```bash
+[root@docker1 ~]# docker swarm join-token manager
+To add a manager to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-cl7o3cixbi8gtm9j0mu0p4dbo 192.168.110.101:2377
+```
 
 （2） 添加节点
-    复制 docker swarm join-token 命令生成的 manager 添加命令，然后在 docker2 与 docker3
+
+​    复制 docker swarm join-token 命令生成的 manager 添加命令，然后在 docker2 与 docker3
 节点上运行，将这两个节点添加为 manager 节点。
+
+```bash
+[root@docker2 ~]# docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-cl7o3cixbi8gtm9j0mu0p4dbo 192.168.110.101:2377
+This node joined a swarm as a manager.
+```
+
+```bash
+[root@docker3 ~]# docker swarm join --token SWMTKN-1-4271ztf28268up945rj2pw77z9ldfhotbxa9p1ye7bwflg4k3i-cl7o3cixbi8gtm9j0mu0p4dbo 192.168.110.101:2377
+This node joined a swarm as a manager.
+```
+
+
 
 **3.2.7.查看 swarm 节点**
 
-​    在 manager 节点 docker、 docker2、 docker3 上通过 docker node ls 命令可以查看到当前  
+​    在 manager 节点 docker1、 docker2、 docker3 上通过 docker node ls 命令可以查看到当前  
 swarm 集群所包含的节点状态数据。
-但在 worker 节点上是不能运行 docker node ls 命令的。
+但在 worker 节点上是不能运行 docker node ls 命令的。* 代表当前所在的主机。
+
+```bash
+[root@docker1 ~]# docker node ls
+ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+v4oae6qx5vy7fsfa614zlhnof *   docker1    Ready     Active         Leader           24.0.6
+ic8lmc4sy6230twxkv3qzf0u2     docker2    Ready     Active         Reachable        24.0.6
+e7jd5dw6rvieqatsru7qztm9i     docker3    Ready     Active         Reachable        24.0.6
+y403qqf2v2pqd8jfva36nr0pa     docker4    Ready     Active                          24.0.6
+yu71e8fkq9k0x0ih6brv73lvd     docker5    Ready     Active                          24.0.6
+```
+
+
 
 ## 3.3.swarm 集群维护
 
@@ -807,7 +920,7 @@ manager 节点还会生成两个 token，一个用于添加 worker 节点，一�
 首先是通过 CA 证书对通信对方的身份进行验证，在验证通过后再进行数据通信。而通信的
 数据则是通过随机密钥加密过的。
 
-**12.5.2 CA 数字证书轮换**
+**12.5.2.CA 数字证书轮换**
 
 （1） 轮换周期
     Swarm 的 CA 数字证书也是有可能被攻击、篡改的。为了保证 swarm 的数字证书的安全  
