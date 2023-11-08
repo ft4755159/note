@@ -2539,6 +2539,761 @@ IP 10.0.0.7.cslistener > 10.0.0.6.9771: Flags [S.], seq 35315279, ack 4149147091
 IP 10.0.0.6.9770 > 10.0.0.7.cslistener: Flags [.], ack 1, win 512, length 0
 ```
 
+# 4.CI/CD之jenkins
+
+## 4.1.平台登录页面 
+
+**4.1.1.GitLab-9999-root** 
+
+<img src="images\image-20231108163427465.png" alt="image-20231108163427465" style="zoom:80%;" />
+
+**4.1.2.Jenkins-8080-zhangsan**
+
+<img src="images\image-20231108163526275.png" alt="image-20231108163526275" style="zoom:80%;" />
+
+**4.1.3.SonarQube-9000-admin** 
+
+<img src="images\image-20231108163602092.png" alt="image-20231108163602092" style="zoom:80%;" />
+
+**4.1.4.harbor-80-admin** 
+
+<img src="images\image-20231108163633825.png" alt="image-20231108163633825" style="zoom:80%;" />
+
+## 4.2.CI/CD 与 DevOps 
+
+**4.2.1.CI/CD 简介** 
+
+<img src="images\image-20231108163737778.png" alt="image-20231108163737778" style="zoom:80%;" />
+
+  CI，Continuous Integration，持续集成。即将持续不断更新的代码经构建、测试后也持 续不断的集成到项目主干分支。
+
+  CD，包含两层含义：Continuous Delivery，持续交付，和 Continuous Deployment，持续 部署。 
+
+- 持续交付：是持续集成的后续步骤，持续频繁地将软件的新版本交付到类生产环境预发， 即交付给测试、产品部门进行集成测试、API 测试等验收，确保交付的产物可直接部署 
+
+- 持续部署：是持续交付的后续步骤，将持续交付的产物部署到生产环境 
+
+**4.2.2.DevOps 简介** 
+
+<img src="images\image-20231108163807816.png" alt="image-20231108163807816" style="zoom:80%;" />
+
+​    百度百科中是这样介绍 DevOps 的： 
+
+​    DevOps（Development 和 Operations 的组合词）是一组过程、方法与系统的统称，用于 促进开发（应用程序/软件工程）、技术运营和质量保障（QA）部门之间的沟通、协作与整合。 
+
+​    它是一种重视“软件开发人员（Dev）”和“IT 运维技术人员（Ops）”之间沟通合作的 文化、运动或惯例。透过自动化“软件交付”和“架构变更”的流程，来使得构建、测试、 发布软件能够更加地快捷、频繁和可靠。 
+
+​    DevOps 是一种思想，是一种管理模式，是一种执行规范与标准。 
+
+**4.2.3.CI/CD 与 DevOps 关系** 
+
+​    CI/CD 是目标，DevOps 为 CI/CD 目标的实现提供了前提与保障。 
+
+## 4.3.系统架构图 
+
+​    最终要搭建出如下图所示架构的系统。 
+
+<img src="images\image-20231108163846670.png" alt="image-20231108163846670" style="zoom:99%;" />
+
+## 4.4.Idea 中 Git 配置 
+
+**4.4.1.Git 简介** 
+
+​    百度百科中是这样介绍 Git 的： 
+
+​    Git（读音为/gɪt/）是一个开源的分布式版本控制系统，可以有效、高速地处理从很小到 非常大的项目版本管理。也是 Linus Torvalds 为了帮助管理 Linux 内核开发而开发的一个开放 源码的版本控制软件。
+
+**4.4.2.Git 的工作流程** 
+
+![image-20231108163950929](images\image-20231108163950929.png)
+
+**4.4.3.Git 的下载与安装** 
+
+从 Git 的官网下载 Git。其官网为：https://git-scm.com 。根据安装向导“下一步”式 安装即可。
+
+<img src="images\image-20231108164026242.png" alt="image-20231108164026242" style="zoom:80%;" />
+
+<img src="images\image-20231108164112427.png" alt="image-20231108164112427" style="zoom:80%;" />
+
+**4.4.4.Idea 中配置 Git**
+
+<img src="images\image-20231108164144336.png" alt="image-20231108164144336" style="zoom:80%;" />
+
+<img src="images\image-20231108164208088.png" alt="image-20231108164208088" style="zoom:80%;" />
+
+<img src="images\image-20231108164258460.png" alt="image-20231108164258460" style="zoom:80%;" />
+
+## 4.5.GitLab 安装与配置 *
+
+**4.5.1.简介** 
+
+​    GitLab 是一个源码托管开源工具，其使用 Git 作为代码管理工具，并在此基础上搭建起 来的 Web 服务。GitLab 由乌克兰程序员使用 Ruby 语言开发，后来一部分使用 Go 语言重写。 生产中通常使用 GitLab 搭建私有源码托管平台。 
+
+**4.5.2.GitLab 的安装** 
+
+**（1） 主机要求** 
+
+​    这里要使用 docker 方式来安装 GitLab，所以需要一台安装有 docker 及 docker-compose 的主机，且该主机内存至少 4G。 
+
+**（2） 拉取镜像** 
+
+​    这里使用由 gitlab 官网发布的社区版镜像 gitlab/gitlab-ce:latest。该镜像最好是先拉取到 本地后再使用，因为该镜像比较大。 
+
+```bash
+1、配置镜像源
+[root@ccgitlab docker]# pwd
+/etc/docker
+[root@ccgitlab docker]# vim daemon.json
+{
+  "registry-mirrors": ["https://mirror.baidubce.com"]
+}
+
+2、pull
+[root@ccgitlab docker]# docker pull gitlab/gitlab-ce
+Using default tag: latest
+latest: Pulling from gitlab/gitlab-ce
+```
+
+**（3） 定义 compose.yml** 
+
+​    由于启动 GitLab 容器时需要设置的内容较多，为了方便，这里使用 docker compose 方 式启动。 在任意目录 mkdir 一个子目录，例如在/usr/local 下新建一个 gitlab 目录。在该目录中新 建 compose.yml 文件。文件内容如下： 
+
+```bash
+[root@ccgitlab gitlab]# pwd
+/usr/local/gitlab
+[root@ccgitlab gitlab]# vim compose.yml
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce
+    container_name: gitlab
+    restart: always
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://192.168.110.121:9999'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+    ports:
+      - 9999:9999
+      - 2222:2222
+    volumes:
+      - ./config:/etc/gitlab
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+
+```
+
+**（4） 启动 gitLab** 
+
+​    使用 docker-compose up -d 命令启动容器服务。不过，其启动过程时间较长些。
+
+```bash
+[root@ccgitlab gitlab]# docker compose up -d
+[+] Running 2/2
+ ✔ Network gitlab_default  Created                                                                            0.0s
+ ✔ Container gitlab        Started                                                                            0.1s
+```
+
+​    在等待过程中，可以查看其启动日志。 
+
+```bash
+[root@ccgitlab gitlab]# docker compose logs -f
+```
+
+​    可以看到如下的大量日志。 
+
+```bash
+gitlab  |       - create symlink at /opt/gitlab/init/prometheus to /opt/gitlab/embedded/bin/sv
+gitlab  |     * file[/opt/gitlab/sv/prometheus/down] action nothing (skipped due to action :nothing)
+gitlab  | [2023-11-06T09:00:26+00:00] INFO: template[/opt/gitlab/sv/prometheus/run] sending run action to ruby_block[restart_service] (delayed)
+gitlab  |     * ruby_block[restart_service] action run (skipped due to only_if)
+```
+
+**4.5.3.GitLab 的密码配置** 
+
+**（1） 浏览器访问** 
+
+​    在浏览器中直接键入 http://192.168.110.121:9999 即可打开登录页面。不过，这个过程 一般需要的时间较长。这里需要登录的用户名与密码。默认的用户名为 root，而默认密码需 要进入容器中查看。
+
+**（2） 查看登录密码** 
+
+​    gitLab 平台的登录用户名默认为 root，初始密码在容器中/etc/gitlab/initial_root_password 文件中。所以需要首先进入容器，然后查看该文件内容。然后再将 root 用户名与复制来的 密码填写到登录页面的相应位置即可登录成功。 
+
+```bash
+[root@ccgitlab docker]# docker exec -it gitlab bash
+root@75bacd0beb30:/# cat /etc/gitlab/initial_root_password
+# WARNING: This value is valid only in the following conditions
+#          1. If provided manually (either via `GITLAB_ROOT_PASSWORD` environment variable or via `gitlab_rails['initial_root_password']` setting in `gitlab.rb`, it was provided before database was seeded for the first time (usually, the first reconfigure run).
+#          2. Password hasn't been changed manually, either via UI or via command line.
+#
+#          If the password shown here doesn't work, you must reset the admin password following https://docs.gitlab.com/ee/security/reset_user_password.html#reset-your-root-password.
+
+Password: 4pUj5sGJFyi8tC1589NxGyJvaLLrpJMC/L0Y3ATKCnM=
+
+# NOTE: This file will be automatically deleted in the first reconfigure run after 24 hours.
+
+```
+
+**（3） 修改密码** 
+
+​    登录后，首先要修改初始密码。新密码要求长度不能少于 8 位。为了方便，这里将新密 码设置为 qwe.1234。
+
+ http://192.168.110.121:9999 
+
+<img src="images\image-20231108164355206.png" alt="image-20231108164355206" style="zoom:80%;" />
+
+<img src="images\image-20231108164520712.png" alt="image-20231108164520712" style="zoom:80%;" />
+
+​     将复制来的初始密码粘贴到 Current password 中，要求新密码长度不能低于 8 位。这里 新密码设置为 qwe.1234。
+
+## 4.6.SonarQube 安装与配置 *
+
+**4.6.1简介** 
+
+​    SonarQube 是一个开源的代码扫描与分析平台，用来持续扫描、分析和评测项目源代码 的质量与安全。 通过 SonarQube 可以检测项目中代码量、安全隐患、编写规范隐患、重复 度、复杂度、代码增量、测试覆盖率等多个维度，并通过 SonarQube web UI 展示出来。
+
+​    SonarQube 支持 30+种编程语言代码的扫描与分析，并能够方便的与代码 IDE、CI/CD 平 台完美集成。 
+
+​    SonarQube 的官网地址：https://www.sonarsource.com/ 
+
+**4.6.2.主机要求** 
+
+​    这里要使用docker方式来安装，所以需要一台安装有docker及docker-compose的主机。 
+
+**4.6.3.安装与配置** 
+
+**（1） 下载两个镜像** 
+
+​    由于 SonarQube 需要 Postgres 数据库的支持，所以安装 SonarQube 之前需要先安装 Postgres 数据库。所以需要下载 Postgres 与 SonarQube 两个镜像。 
+
+```bash
+[root@ccsonarqube sonarqube]# docker images
+REPOSITORY   TAG             IMAGE ID       CREATED        SIZE
+sonarqube    9.9-community   190725cfc485   7 days ago     617MB
+postgres     13.10           c562f2f06bc5   6 months ago   374MB
+```
+
+**（2） 定义 compose.yml** 
+
+​    由于需要启动两个容器，所以这里使用 docker-compose 方式。 
+
+​    在/usr/local 下 mkdir 一个 sonar 目录，在其中定义 compose.yml 文件。
+
+```yml
+services:
+  postgres:
+    image: postgres:16
+    container_name: pgdb
+    restart: always
+    ports:
+      - 5342:5432
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: sonarqb
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - 9000:9000
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://pgdb:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+```
+
+
+
+**（3） 修改虚拟内存大小** 
+
+​    在/etc/sysctl.conf 文件中指定 vm.max_map_count 虚拟内存大小。 
+
+```bash
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in
+# /etc/sysctl.d/ and put new settings there. To override
+# only specific settings, add a file with a lexically later
+# name in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+
+vm.max_map_count=262144
+```
+
+​    修改保存后再运行 sysctl –p 命令使 Linux 内核加载文件中的配置。 
+
+```bash
+[root@ccsonarqube sonarqube]# sysctl -p
+vm.max_map_count = 262144
+```
+
+**（4） 启动 SonarQube** 
+
+​    通过 docker-compose up –d 命令启动容器，并 docker ps 查看是否启动成功。
+
+```bash
+[root@ccsonarqube sonarqube]# docker compose up -d
+```
+
+**（5） 登录 SonarQube** 
+
+​    在浏览器键入 SonarQube 服务器的 IP 与端口号 9000，即可打开登录页面。默认用户名 与密码都是 admin。
+
+​    Log in 后即可跳转到更新密码页面。这里更新密码为 qwe.1234。 
+
+​    Update 后即可看到首页。
+
+**（6） 安装汉化插件** 
+
+<img src="images\image-20231108164715058.png" alt="image-20231108164715058" style="zoom:80%;" />
+
+<img src="images\image-20231108164817451.png" alt="image-20231108164817451" style="zoom:80%;" />
+
+​    在 Maketplace 中键入关键字 Chinese 后即可找到要安装的汉化插件，点击 I understand  the risk（我了解风险）后即可看到 Install 按钮，点击安装。 
+
+<img src="images\image-20231108164857945.png" alt="image-20231108164857945" style="zoom:80%;" />
+
+​    安装成功后，在页面上部就可看到 Restart Server 的提示，让重启 SonarQube。
+
+<img src="images\image-20231108164925362.png" alt="image-20231108164925362" style="zoom:80%;" />
+
+​    重启后，页面会自动跳转到具有中文的登录页面。登录进入后，页面已经变为了中文。
+
+## 4.7.harbor 安装与配置 *
+
+**4.7.1.Harbor 安装系统要求** 
+
+​    Harbor 要安装的主机需要满足硬件与软件上的要求。 
+
+**（1） 硬件要求** 
+
+|硬件资源|最小要求|推荐要求|
+| ---- | ---- | ---- |
+|CPU |2CPU|4CPU|
+|内存 |4GB|8GB|
+|硬盘 |40GB|160GB|
+
+**（2） 软件要求** 
+
+| 软件资源       | 版本要求           | 作用                                                 |
+| -------------- | ------------------ | ---------------------------------------------------- |
+| Docker CE 引擎 | 17.06.0 或更高版本 | Harbor 是以容器形式在运行，需要 Docker 引擎          |
+| Docker Compose | 1.18.0 或更高版本  | Harbor 是 10 个容器在运行，通过 Docker  Compose 编排 |
+| OpenSSL        | 最新版             | 生成数字证书，以支持 HTTPS                           |
+
+**4.7.2.安装 Harbor** 
+
+**（1） 下载安装包** 
+
+在官网复制 Latest 最新版的离线安装包的下载链接地址，在 Linux 系统中通过 wget 命令 下载，将其下载到某目录中。 
+
+```bash
+[root@ccharbor local]# wget https://github.com/goharbor/harbor/releases/download/v2.7.3/harbor-offline-installer-v2.7.3.tgz
+```
+
+```bash
+[root@ccharbor local]# ls
+bin  etc  games  harbor-offline-installer-v2.7.3.tgz  include  lib  lib64  libexec  sbin  share  src
+[root@ccharbor local]# pwd
+/usr/local
+```
+
+**（2） 解压安装包** 
+
+将下载好的包解压到某目录中。解压后其就是一个独立的目录 harbor。  
+
+```bash
+[root@ccharbor local]# tar -zxvf harbor-offline-installer-v2.7.3.tgz
+```
+
+```bash
+[root@ccharbor local]# ls
+bin  etc  games  harbor  harbor-offline-installer-v2.7.3.tgz  include  lib  lib64  libexec  sbin  share  src
+```
+
+**（3） 修改 harbor.yml** 
+
+复制一份 harbor 解压包中的 harbor.yml.tmpl，并重命名为 harbor.yml。 
+
+```bash
+[root@ccharbor harbor]# cp harbor.yml.tmpl harbor.yml
+[root@ccharbor harbor]# ls
+common.sh  harbor.v2.7.3.tar.gz  harbor.yml  harbor.yml.tmpl  install.sh  LICENSE  prepare
+[root@ccharbor harbor]# vim harbor.yml
+
+# Configuration file of Harbor
+
+# The IP address or hostname to access admin UI and registry service.
+# DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
+hostname: 192.168.110.124
+
+# http related config
+http:
+  # port for http, default is 80. If https enabled, this port will redirect to https port
+  port: 80
+
+# https related config
+# https:
+  # https port for harbor, default is 443
+  # port: 443
+  # The path of cert and key files for nginx
+  # certificate: /your/certificate/path
+  # private_key: /your/private/key/path
+
+# # Uncomment following will enable tls communication between all harbor components
+# internal_tls:
+#   # set enabled to true means internal tls is enabled
+#   enabled: true
+#   # put your cert and key files on dir
+#   dir: /etc/harbor/tls/internal
+
+# Uncomment external_url if you want to enable external proxy
+# And when it enabled the hostname will no longer used
+# external_url: https://reg.mydomain.com:8433
+
+# The initial password of Harbor admin
+# It only works in first time to install harbor
+# Remember Change the admin password from UI after launching Harbor.
+harbor_admin_password: qwe.1234
+```
+
+**（4） 运行 prepare** 
+
+运行 harbor 解压目录中的 prepare 命令。该命令会先拉取 prepare 镜像，然后再生成很 多的其后期要用到的配置文件。
+
+```bash
+[root@ccharbor harbor]# ./prepare
+prepare base dir is set to /usr/local/harbor
+Unable to find image 'goharbor/prepare:v2.7.3' locally
+v2.7.3: Pulling from goharbor/prepare
+```
+
+**（5） 运行 install.sh** 
+
+运行 harbor 解压目录中的 install.sh 命令，其会自动完成五步的安装过程，并在最终启 动很多的容器。这些容器本质上就是通过 docker-compose 进行编排管理的。
+
+```bash
+[root@ccharbor harbor]# ./install.sh
+```
+
+```bash
+[+] Running 10/10
+ ✔ Network harbor_harbor        Created                                                                        0.0s
+ ✔ Container harbor-log         Started                                                                        0.0s
+ ✔ Container harbor-db          Started                                                                        0.0s
+ ✔ Container harbor-portal      Started                                                                        0.0s
+ ✔ Container registryctl        Started                                                                        0.0s
+ ✔ Container registry           Started                                                                        0.0s
+ ✔ Container redis              Started                                                                        0.0s
+ ✔ Container harbor-core        Started                                                                        0.0s
+ ✔ Container nginx              Started                                                                        0.0s
+ ✔ Container harbor-jobservice  Started                                                                        0.0s
+✔ ----Harbor has been installed and started successfully.----
+```
+
+ **（6） 新建仓库** 
+
+​    在浏览器地址栏中输入 http://192.168.110.124 即可看到登录页面，在其中输入用户名 admin，密码为默认的 qwe.1234，即可登录。
+
+​    登录后点击“新建项目”，新建一个镜像仓库。 
+
+## 4.8.目标服务器安装与配置 *
+
+**4.8.1.docker 引擎** 
+
+由于目标服务器需要从镜像中心 Harbor 中 docker pull 镜像，然后使用 docker run 来运 行容器，所以目标服务器中需要安装 Docker 引擎。 
+
+**4.8.2.docker-compose** 
+
+由于目标服务器需要通过 docker-compose 运行 compose.yml 文件来启动容器，所以目 标服务器中需要安装 docker-compose。 
+
+**4.8.3.接收目录** 
+
+​    Jenkins 通过 SSH 将命令发送到目标服务器，以使目标服务器可以从 Harbor 拉取镜像、 运行容器等。所以在目标服务器中需要具有一个用户接收 Jenkins 发送数据的目录。本例将 该接收目录创建在/usr/local/jenkins 中。
+
+```bash
+[root@cctarget local]# mkdir jenkins
+```
+
+
+
+## 4.9.Jenkins 安装与配置 *
+
+**4.9.1.Jenkins 简介** 
+
+（1） 百度百科 
+
+​    以下是百度百科中关于 Jenkins 的词条： Jenkins 是一个开源软件项目，是基于 Java 开发的一种持续集成工具，用于监控持续重 复的工作，旨在提供一个开放易用的软件平台，使软件项目可以进行持续集成。 
+
+（2） 主机要求 
+
+​    这里要使用docker方式来安装，所以需要一台安装有docker及docker-compose的主机。 
+
+**4.9.2.安装 JDK** 
+
+​    由于 Jenkins 通过调用 Maven 来实现对项目的构建，所以需要在 Jenkins 主机中安装 Maven。由于 maven 的运行需要 JDK 的环境，所以需要首安装 JDK。 
+
+​    对于 JDK 的安装非常简单，只需要从官网下载相应版本的 JDK 到 Linux 系统后，直接解 压即可。无需配置。这里下载的是 jdk-8u211-linux-x64.tar.gz，将其解压到了/opt/apps 目录下， 并重命名为了 jdk。
+
+```bash
+[root@ccjenkins ~]# rz -b  # 二进制上传
+[root@ccjenkins ~]# ll
+总用量 199576
+-rw-r--r--  1 root root   9359994 10月  3 02:06 apache-maven-3.9.5-bin.tar.gz
+-rw-r--r--  1 root root 194990602 11月  8 11:37 jdk-8u211-linux-x64.tar.gz
+
+[root@ccjenkins ~]# tar -zxvf jdk-8u211-linux-x64.tar.gz -C /opt/apps/
+```
+
+```bash
+[root@ccjenkins apps]# mv jdk1.8.0_211/ jdk
+[root@ccjenkins apps]# ll
+总用量 0
+drwxr-xr-x 7 10 143 245 4月   2 2019 jdk
+```
+
+**4.9.3.安装 maven** 
+
+**（1） 下载解压 maven** 
+
+​    首先需要从官网下载最新版本的 Maven 到 Linux 系统后，直接解压。这里下载的是 apache-maven-3.9.0-bin.tar.gz，将其解压到/opt/apps 目录下，并重命名为 maven。
+
+```bash
+[root@ccjenkins ~]# wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
+
+[root@ccjenkins ~]# tar -zxvf apache-maven-3.9.5-bin.tar.gz -C /opt/apps/
+```
+
+```bash
+[root@ccjenkins apps]# mv apache-maven-3.9.5/ maven
+[root@ccjenkins apps]# ll
+总用量 0
+drwxr-xr-x 7   10  143 245 4月   2 2019 jdk
+drwxr-xr-x 6 root root  99 11月  8 12:05 maven
+```
+
+**（2） 配置 maven 镜像仓库** 
+
+​    maven解压后需要修改解压目录中conf/settings.xml文件中的两处配置。这里配置maven 的镜像源为 aliyun。 
+
+```bash
+```
+
+**（3） 配置 maven 编译器版本** 
+
+​    maven 默认的编译器版本为 JDK1.4，这里需要指定为 JDK1.8。配置了该<profile>后，在文件最后的中再激活一下即可。
+
+```bash
+```
+
+**4.9.4.安装启动 Jenkins** 
+
+**（1） 下载镜像** 
+
+​    这里要使用 docker 方式来安装 Jenkins，所以需要先下载 Jenkins 的镜像。 
+
+```bash
+[root@ccjenkins apps]# docker images
+REPOSITORY        TAG           IMAGE ID       CREATED        SIZE
+jenkins/jenkins   2.387.1-lts   d5ed2ceef0ec   8 months ago   471MB
+```
+
+**（2） 启动 jenkins** 
+
+​    使用 docker run 命令启动 Jenkins。 
+
+```bash
+[root@ccjenkins apps]# docker run --name jenkins \
+--restart always \
+-p 8080:8080 \
+-p 50000:50000 \
+-v /var/jenkins_home:/var/jenkins_home \
+-d jenkins/jenkins:2.387.1-lts
+```
+
+**（3） 修改数据卷权限**
+
+​    当 Jenkins 启动后，通过 docker logs jenkins 命令查看 jenkins 的日志可以看到出错了。
+
+```bash
+[root@ccjenkins apps]# docker logs jenkins -f
+touch: cannot touch '/var/jenkins_home/copy_reference_file.log': Permission denied
+Can not write to /var/jenkins_home/copy_reference_file.log. Wrong volume permissions?
+touch: cannot touch '/var/jenkins_home/copy_reference_file.log': Permission denied
+Can not write to /var/jenkins_home/copy_reference_file.log. Wrong volume permissions?
+```
+
+​    原因是，jenkins 需向数据卷挂载点的文件/var/jenkins_home/copy_reference_file.log 中写 入日志时，由于写入操作的用户不是 root 用户，而非 root 用户对数据卷没有写操作权限。
+
+```bash
+drwxr-xr-x   2 root root    6 11月  8 12:23 jenkins_home
+```
+
+​    此时需要修改数据卷操作权限，为非 root 用户添加写操作权限。
+
+```bash 
+[root@ccjenkins var]# chmod -R 777 /var/jenkins_home
+```
+
+​    此时再查看，发现已经具备了写操作权限。 
+
+```bash
+drwxrwxrwx   2 root root    6 11月  8 12:23 jenkins_home
+```
+
+ **（4） 重启 jenkins** 
+
+​    重启 jenkins 容器。 
+
+```bash
+[root@ccjenkins apps]# docker restart jenkins
+```
+
+**（5） 修改插件下载源** 
+
+​    由于 jenkins 在后期运行时需要下载很多的插件，而这些插件默认都是从国外的 Jenkins 官方服务器上下载的，下载速度很慢，且下载失败的比例很高。所以，一般会先将这些插件 的下载源更新为国内的服务器。 
+
+​    该更新文件是数据卷目录中的 hudson.model.UpdateCenter.xml。
+
+```bash
+[root@ccjenkins jenkins_home]# ll
+总用量 24
+-rw-r--r--  1 admin admin 1663 11月  8 15:53 config.xml
+-rw-r--r--  1 admin admin   50 11月  8 15:52 copy_reference_file.log
+-rw-r--r--  1 admin admin  156 11月  8 15:52 hudson.model.UpdateCenter.xml
+-rw-r--r--  1 admin admin  171 11月  8 15:52 jenkins.telemetry.Correlator.xml
+drwxr-xr-x  2 admin admin    6 11月  8 15:52 jobs
+-rw-r--r--  1 admin admin  907 11月  8 15:52 nodeMonitors.xml
+drwxr-xr-x  2 admin admin    6 11月  8 15:52 nodes
+drwxr-xr-x  2 admin admin    6 11月  8 15:52 plugins
+-rw-r--r--  1 admin admin   64 11月  8 15:52 secret.key
+-rw-r--r--  1 admin admin    0 11月  8 15:52 secret.key.not-so-secret
+drwx------  2 admin admin   91 11月  8 15:52 secrets
+drwxr-xr-x  2 admin admin   67 11月  8 15:53 updates
+drwxr-xr-x  2 admin admin   24 11月  8 15:52 userContent
+drwxr-xr-x  3 admin admin   56 11月  8 15:52 users
+drwxr-xr-x 11 admin admin  264 11月  8 15:52 war
+```
+
+​    查看该文件内容： 
+
+```bash
+<?xml version='1.1' encoding='UTF-8'?>
+<sites>
+  <site>
+    <id>default</id>
+    <url>https://updates.jenkins.io/update-center.json</url>
+  </site>
+</sites>
+```
+
+​    将该默认的更换为清华大学的下载源地址。 https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/current/update-center.json 
+
+```bash
+<?xml version='1.1' encoding='UTF-8'?>
+<sites>
+  <site>
+    <id>default</id>
+    <url>https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/current/update-center.json</url>
+  </site>
+</sites>
+```
+
+**（6） 查看 admin 默认密码** 
+
+​    通过 docker logs jenkins 命令查看日志，可以看到已经正常了。并且在最后还可以看到 Jenkins 的 admin 用户及其初始化密码。 
+
+```bash
+Jenkins initial setup is required. An admin user has been created and a password generated.
+Please use the following password to proceed to installation:
+
+07fa90e7439b4980a14c58655626aa10
+
+This may also be found at: /var/jenkins_home/secrets/initialAdminPassword
+
+*************************************************************
+*************************************************************
+*************************************************************
+```
+
+**（7） 插件下载** 
+
+​    在浏览器中键入 jenkins 的地址后进行访问，可看到 Jenkins 解锁页面。在管理员密码中 输入前面 docker logs jenkins 中看到的初始化密码后继续。
+
+<img src="images\image-20231108165235046.png" alt="image-20231108165235046" style="zoom:80%;" />
+
+<img src="images\image-20231108165305393.png" alt="image-20231108165305393" style="zoom:80%;" />
+
+​    选择插件来安装。
+
+<img src="images\image-20231108165341278.png" alt="image-20231108165341278" style="zoom:80%;" />
+
+​    这里保持默认的选择即可。
+
+<img src="images\image-20231108165420965.png" alt="image-20231108165420965" style="zoom:80%;" />
+
+​    该页面需要的时间可能会较长。 
+
+**（8） 创建管理员用户** 
+
+<img src="images\image-20231108165456750.png" alt="image-20231108165456750" style="zoom:80%;" />
+
+​    当插件下载完毕后，会自动跳转到该页面。填写上第一个管理员信息后保存并完成。这里填写的用户名为 zhangsan，密码为 qwe.1234。 
+
+<img src="images\image-20231108165605268.png" alt="image-20231108165605268" style="zoom:80%;" />
+
+<img src="images\image-20231108165643435.png" alt="image-20231108165643435" style="zoom:80%;" />
+
+<img src="images\image-20231108165706167.png" alt="image-20231108165706167" style="zoom:80%;" />
+
+**4.9.5.配置 Jenkins** 
+
+**（1） 安装两个插件** 
+
+​    点击 Manage Jenkins 中的 Manage Plugins 页面，在 Available plugins 选项卡页面的搜索 栏中分别键入 Git Parameter 与 Publish Over SSH，选中它们后，Install without restart。
+
+<img src="images\image-20231108165733662.png" alt="image-20231108165733662" style="zoom:80%;" />
+
+<img src="images\image-20231108165753170.png" alt="image-20231108165753170" style="zoom:80%;" />
+
+​    然后就可看到下载过程显示“等待”，直到看到下面的“完成”“Success”后，即可返 回首页了。
+
+<img src="images\image-20231108165826090.png" alt="image-20231108165826090" style="zoom:80%;" />
+
+**（2） 移动 JDK 与 Maven** 
+
+​    首先要将 Jenkins 主机中的 JDK 与 Maven 解压目录移动到数据卷/var/Jenkins_home 中。 
+
+```bash
+[root@ccjenkins jenkins_home]# mv /opt/apps/maven/ ./
+[root@ccjenkins jenkins_home]# mv /opt/apps/jdk/ ./
+```
+
+**（3） 配置 JDK 与 Maven** 
+
+​    在 Manage Jenkins 的 Global Tool Configuration 页面中配置 Maven 与 JDK。 
+
+<img src="images\image-20231108165854354.png" alt="image-20231108165854354" style="zoom:80%;" />
+
+<img src="images\image-20231108165916572.png" alt="image-20231108165916572" style="zoom:80%;" />
+
+<img src="images\image-20231108165937650.png" alt="image-20231108165937650" style="zoom:80%;" />
+
+​    这里填写的是容器中挂载点目录中的路径。 
+
+<img src="images\image-20231108170007866.png" alt="image-20231108170007866" style="zoom:80%;" />
+
+<img src="images\image-20231108170035362.png" alt="image-20231108170035362" style="zoom:80%;" />
+
+​    这里填写的也是容器中挂载点目录中的路径。最后再应用并保存。
+
+
+
 
 
 
@@ -3497,5 +4252,3 @@ docker 容器启动后并不会永远处于运行状态，各种意外都可能�
 **（4） unless-stopped**
 只要容器退出就会重启容器，除非通过 docker stop 或 docker kill 命令停止容器。
 
-
-# CI/CD之jenkins
