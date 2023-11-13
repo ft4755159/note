@@ -2625,7 +2625,7 @@ IP 10.0.0.6.9770 > 10.0.0.7.cslistener: Flags [.], ack 1, win 512, length 0
 
 ## 4.5.GitLab 安装与配置 *
 
-**4.5.1.简介** 
+**4.5.1.简介** 192.168.110.121:9999 ccgitlab (4GB ram) root
 
 ​    GitLab 是一个源码托管开源工具，其使用 Git 作为代码管理工具，并在此基础上搭建起 来的 Web 服务。GitLab 由乌克兰程序员使用 Ruby 语言开发，后来一部分使用 Go 语言重写。 生产中通常使用 GitLab 搭建私有源码托管平台。 
 
@@ -2747,7 +2747,7 @@ Password: 4pUj5sGJFyi8tC1589NxGyJvaLLrpJMC/L0Y3ATKCnM=
 
 ## 4.6.SonarQube 安装与配置 *
 
-**4.6.1简介** 
+**4.6.1简介** 192.168.110.123:9000 ccsonarqube(2GB ram) admin
 
 ​    SonarQube 是一个开源的代码扫描与分析平台，用来持续扫描、分析和评测项目源代码 的质量与安全。 通过 SonarQube 可以检测项目中代码量、安全隐患、编写规范隐患、重复 度、复杂度、代码增量、测试覆盖率等多个维度，并通过 SonarQube web UI 展示出来。
 
@@ -2866,7 +2866,7 @@ vm.max_map_count = 262144
 
 ## 4.7.harbor 安装与配置 *
 
-**4.7.1.Harbor 安装系统要求** 
+**4.7.1.Harbor 安装系统要求** 192.168.110.124:80 ccharbor(4GB ram) admin
 
 ​    Harbor 要安装的主机需要满足硬件与软件上的要求。 
 
@@ -3004,7 +3004,7 @@ v2.7.3: Pulling from goharbor/prepare
 
 ## 4.8.目标服务器安装与配置 *
 
-**4.8.1.docker 引擎** 
+**4.8.1.docker 引擎** 192.168.110.125 cctarget(1GB ram)
 
 由于目标服务器需要从镜像中心 Harbor 中 docker pull 镜像，然后使用 docker run 来运 行容器，所以目标服务器中需要安装 Docker 引擎。 
 
@@ -3022,9 +3022,9 @@ v2.7.3: Pulling from goharbor/prepare
 
 
 
-## 4.9.Jenkins 安装与配置 *
+## 4.9.Jenkins 安装与配置 * 
 
-**4.9.1.Jenkins 简介** 
+**4.9.1.Jenkins 简介** 192.168.110.122:8080 ccjenkins(1GB ram) zhangsan
 
 （1） 百度百科 
 
@@ -3293,6 +3293,504 @@ This may also be found at: /var/jenkins_home/secrets/initialAdminPassword
 ​    这里填写的也是容器中挂载点目录中的路径。最后再应用并保存。
 
 
+
+## 4.10.Jenkins 集成 SonarQube *
+
+**4.10.1.Jenkins 中安装 SonarScanner** 
+
+**（1） SonarScanner 简介** 
+
+​    SonarScanner 是一种代码扫描工具，专门用来扫描和分析项目代码质量。扫描和分析完 成之后，会将结果写入到 SonarQube 服务器的数据库中，并在 SonarQube 平台显示这些数 据。 
+
+**（2） 下载** 
+
+​    在 SonarQube 官网的帮助文档中可以下载 SonarScanner。这里下载一个 Linux 系统下使 用的版本。 
+
+<img src="images\image-20231113174127657.png" alt="image-20231113174127657" style="zoom:80%;" />
+
+<img src="images\image-20231113174210763.png" alt="image-20231113174210763" style="zoom:80%;" />
+
+**（3） 安装 unzip** 
+
+​    由于下载的 SonarScannner 是 zip 压缩类型的，所以需要在 Linux 系统中安装 unzip 命令， 以解压该压缩包。 
+
+```bash
+[root@ccjenkins ~]# yum -y install unzip
+```
+
+**（4） 解压/移动** 
+
+​    解压 zip 压缩包。
+
+```bash
+[root@ccjenkins ~]# unzip sonar-scanner-cli-4.8.0.2856-linux.zip
+```
+
+​    由于后期要在 Jenkins 中集成 SonarScanner，需要 SonarScanner 存在于 Jenkins 服务器中的数据卷目录中。所以将解压后的目录移动到数据卷jenkins_home下并更名为sonar_scanner。 
+
+```bash
+[root@ccjenkins ~]# mv sonar-scanner-4.8.0.2856-linux/ /var/jenkins_home/sonar-scanner
+```
+
+```bash
+...
+drwx------  2 admin admin  162 11月  8 16:10 secrets
+drwxr-xr-x  6 root  root    51 12月 22 2022 sonar-scanner
+drwxr-xr-x  2 admin admin  182 11月  8 16:11 updates
+drwxr-xr-x  2 admin admin   24 11月  8 15:52 userContent
+drwxr-xr-x  3 admin admin   59 11月  8 16:07 users
+drwxr-xr-x 11 admin admin  264 11月  8 15:52 war
+[root@ccjenkins jenkins_home]# 
+```
+
+**（5） 修改配置文件** 
+
+​    在 sonar-scanner 目录的 conf 目录下有其配置文件 sonar-scanner.properties。修改该配置 文件。 
+
+​    ./代表sonar-scanner 目录下的 workspace文件夹
+
+```bash
+/var/jenkins_home/sonar-scanner/conf
+[root@ccjenkins conf]# vim sonar-scanner.properties
+
+#Configure here general information about the environment, such as SonarQube server connection details for example
+#No information about specific project should appear here
+
+#----- Default SonarQube server
+sonar.host.url=http://192.168.110.123:9000
+
+#----- Default source code encoding
+sonar.sourceEncoding=UTF-8
+
+sonar.sources=./
+sonar.java.binaries=./target
+```
+
+
+
+**4.10.2.Jenkins 配置 SonarQube** 
+
+**（1） 安装插件** 
+
+​    在 Jenkins 页面的系统管理 - 插件管理 - Available plugins 中搜索 sonarqube scanner， 安装该插件。该插件用于连接 SonarScanner。 
+
+<img src="images\image-20231113174313462.png" alt="image-20231113174313462" style="zoom:80%;" />
+
+<img src="images\image-20231113174348655.png" alt="image-20231113174348655" style="zoom:80%;" />
+
+​    安装完毕后，点选“安装完成后重启 Jenkins”，进行重启。
+
+**（2） 添加 Sonarqube** 
+
+​    打开 Jenkins 的 Manage Jenkins - Configure System 页面，找到 SonarQube servers，添 加 SonarQube 服务器。 
+
+<img src="images\image-20231113174427806.png" alt="image-20231113174427806" style="zoom:80%;" />
+
+​    点击 Add SonarQube 按钮后即可看到以下配置框。
+
+http://192.168.110.123:9000
+
+<img src="images\image-20231113174511400.png" alt="image-20231113174511400" style="zoom:80%;" />
+
+<img src="images\image-20231113174538179.png" alt="image-20231113174538179" style="zoom:80%;" />
+
+**（3） 添加 SonarScanner** 
+
+​    这里要将前面安装在 Jenkins 数据卷中的 SonarScanner 配置到 Jenkins 中。 
+
+​    在 Jenkins 页面的 Manage Jenkins - 全局工具配置 中找到 SonarQube Scanner。
+
+<img src="images\image-20231113174845900.png" alt="image-20231113174845900" style="zoom:80%;" />
+
+<img src="images\image-20231113174923254.png" alt="image-20231113174923254" style="zoom:80%;" />
+
+## 4.11.Jenkins 集成目标服务器 *
+
+​    这里要配置连接到目标服务器的连接方式。打开 Manage Jenkins 中的 Configure System 页面。 
+
+<img src="images\image-20231113175027234.png" alt="image-20231113175027234" style="zoom:80%;" />
+
+​    将页面拉到最下面，可以看到 Publish over SSH。这里可以设置非对称加密的身份验证方 式，也可设置对称加密的身份验证方式。这里采用对称加密身份验证方式。点击新增按钮。
+
+<img src="images\image-20231113175058699.png" alt="image-20231113175058699" style="zoom:80%;" />
+
+192.168.110.125
+
+<img src="images\image-20231113175239411.png" alt="image-20231113175239411" style="zoom:80%;" />
+
+<img src="images\image-20231113175406545.png" alt="image-20231113175406545" style="zoom:80%;" />
+
+​    填写完毕后，页面拉到最下面，点击 Test Configuration 进行测试。如果可以看到 Success， 说明连接成功。然后再应用并保存。 
+
+
+
+## 4.12.自由风格的 CI 操作(中间架构) **
+
+**4.12.1中间架构图** 
+
+<img src="images\image-20231113175510802.png" alt="image-20231113175510802" style="zoom:80%;" />
+
+**4.12.2.创建 web 项目** 
+
+​    创建一个 web 项目，就使用最简单的 spring boot 工程，例如工程名为 hellojks。仅需导 入 spring web 依赖即可。
+
+**（1） 创建工程** 
+
+​    创建一个 Spring Boot 工程，其仅包含一个 spring web 依赖。 
+
+**（2） 定义 Controller** 
+
+​    只需定义一个简单的 Controller 即可。 
+
+<img src="images\image-20231113175612843.png" alt="image-20231113175612843" style="zoom:80%;" />
+
+**（3） 访问效果** 
+
+<img src="images\image-20231113175716219.png" alt="image-20231113175716219" style="zoom:80%;" />
+
+**4.12.3.Idea 提交项目到远程仓库** 
+
+**（1） 在 GitLab 中创建远程仓库** 
+
+​    首先在 GitLab 中创建一个远程仓库，用于管理前面 Idea 中创建的工程。
+
+<img src="images\image-20231113175804612.png" alt="image-20231113175804612" style="zoom:80%;" />
+
+<img src="images\image-20231113175827682.png" alt="image-20231113175827682" style="zoom:80%;" />
+
+<img src="images\image-20231113175854549.png" alt="image-20231113175854549" style="zoom:80%;" />
+
+​    点击Create project后就可进入下个页面，可以看到当前仓库的信息及相关的操作命令。 客户端通过这些命令可完成对该仓库的操作。
+
+<img src="images\image-20231113180231449.png" alt="image-20231113180231449" style="zoom:80%;" />
+
+ **（2） 创建用户** 
+
+​    仿照远程仓库页面中的 Git global stetup 中的命令，在项目的 Terminal 窗口中创建一个 全局用户。
+
+<img src="images\image-20231113180308392.png" alt="image-20231113180308392" style="zoom:80%;" />
+
+**（3） 初始化本地仓库** 
+
+​    将当前的项目目录 hellojks 初始化为本地仓库。
+
+<img src="images\image-20231113180346449.png" alt="image-20231113180346449" style="zoom:80%;" />
+
+<img src="images\image-20231113180429253.png" alt="image-20231113180429253" style="zoom:80%;" />
+
+**（4） 提交代码到本地库** 
+
+​    在项目上右击，选择 Git - Commit Directory。
+
+<img src="images\image-20231113180509321.png" alt="image-20231113180509321" style="zoom:80%;" />
+
+​    此时会弹出一个 Commit to master 的窗口。在其中选择要提交的文件，并在文本区填写 提交日志。然后 Commit。
+
+<img src="images\image-20231113180538282.png" alt="image-20231113180538282" style="zoom:80%;" />
+
+​    然后会看到警告，不影响提交，直接再 Commit Anyway 即可。
+
+<img src="images\image-20231113180610565.png" alt="image-20231113180610565" style="zoom:80%;" />
+
+​    提交后变为以下形式。 
+
+<img src="images\image-20231113180711165.png" alt="image-20231113180711165" style="zoom:80%;" />
+
+**（5） 提交到远程库** 
+
+​    首先要从远程仓库中获取仓库地址。选择复制 Clone with HTTP 的地址。
+
+<img src="images\image-20231113180649990.png" alt="image-20231113180649990" style="zoom:80%;" />
+
+​    然后在项目上右键，选择 Git - Push。 
+
+<img src="images\image-20231113180745310.png" alt="image-20231113180745310" style="zoom:80%;" />
+
+​    在新窗口中点击 Define remote，在弹出的窗口中粘贴进复制来的远程仓库地址。
+
+192.168.110.121
+
+<img src="images\image-20231113180815229.png" alt="image-20231113180815229" style="zoom:80%;" />
+
+<img src="images\image-20231113180926533.png" alt="image-20231113180926533" style="zoom:80%;" />
+
+​    Push 后会弹出访问 GitLab 的登录窗口，输入用户名 root，密码为前面修改过的 qwe.1234 。 
+
+<img src="images\image-20231113181001830.png" alt="image-20231113181001830" style="zoom:80%;" />
+
+​    推送成功后，在 idea 右下角即可看到成功提示。
+
+<img src="images\image-20231113181055577.png" alt="image-20231113181055577" style="zoom:80%;" />
+
+​    此时刷新 GitLab 页面，即可看到推送来的项目。 
+
+<img src="images\image-20231113181124723.png" alt="image-20231113181124723" style="zoom: 80%;" />
+
+**4.12.4从 GitLab 拉取代码** 
+
+**（1） 新建任务**  
+
+<img src="images\image-20231113181155735.png" alt="image-20231113181155735" style="zoom:80%;" />
+
+<img src="images\image-20231113181241464.png" alt="image-20231113181241464" style="zoom:80%;" />
+
+**（2） Jenkins 集成 GitLab** 
+
+​    在点击确定后即可立即配置 Jenkins 中 GitLab 服务器的信息。 192.168.110.121
+
+<img src="images\image-20231113181306917.png" alt="image-20231113181306917" style="zoom:80%;" />
+
+​    对于 public 的 GitLab 仓库，直接指定仓库地址，应用保存即可。但对于 private 仓库，则需要指定访问 GitLab 的用户名与密码。点击添加按钮，即可打开下面的窗口。
+
+<img src="images\image-20231113181420660.png" alt="image-20231113181420660" style="zoom:80%;" />
+
+​    在其中填写用户名与密码后“添加”即可返回之前的页面，此时在 Credentials 下拉框中 即可找到新添加的用户信息，选择即可。 
+
+![image-20231113181457167](images\image-20231113181457167.png)
+
+**（3） 立即构建**
+
+​    任务创建成功后即可看到如下页面。在该页面中点击“立即构建”，Jenkins 即可开始从 GitLab 上拉取项目。此时右下角就会发生变化。 
+
+<img src="images\image-20231113181517195.png" alt="image-20231113181517195" style="zoom:80%;" />
+
+​    点击右下角的日期时间，选择控制台输出，可看到这个拉取过程的日志。
+
+<img src="images\image-20231113181544943.png" alt="image-20231113181544943" style="zoom: 80%;" />
+
+​    从以上日志的 git init /var/jenkins_home/workspace/my_hellojks 命令可以看出，Jenkins 将其容器内的/var/jenkins_home/workspace/my_hellojks 目录作为项目的本地仓库。也就是将 数据卷目录。进入 jenkins 数据卷可以看到该项目已经存在了。
+
+```bash
+[root@ccjenkins my_hellojks]# ll
+总用量 4
+-rw-r--r-- 1 admin admin 1415 11月 13 11:33 pom.xml
+drwxr-xr-x 4 admin admin   30 11月 13 11:33 src
+```
+
+ **4.12.5.将项目打为 jar 包** 
+
+​    在 Jenkins 能够通过配置，调用本地的 maven 的 mvn 命令，将拉取来的项目打为 Jar 包。 
+
+**（1） Jenkins 配置 mvn 命令** 
+
+<img src="images\image-20231113181631802.png" alt="image-20231113181631802" style="zoom: 80%;" />
+
+​    点击配置后，打开配置页面。然后点击 Build Steps，跳转到以下位置。
+
+<img src="images\image-20231113181651727.png" alt="image-20231113181651727" style="zoom: 80%;" />
+
+<img src="images\image-20231113181711860.png" alt="image-20231113181711860" style="zoom:80%;" />
+
+​    选择调用顶层 Maven 目标，即可使用前面配置的 Maven 来完成打包任务。 
+
+<img src="images\image-20231113181734258.png" alt="image-20231113181734258" style="zoom:80%;" />
+
+​    在 Maven 版本下拉框中选择前面配置好的 maven，目标中写入需要 maven 去执行的 maven 命令，应用保存后，自动跳转回任务首页。 
+
+**（2） 重新构建** 
+
+​    在配置好 maven 的构建命令后，再次执行“立即构建”。 
+
+<img src="images\image-20231113181807166.png" alt="image-20231113181807166" style="zoom:80%;" />
+
+​    查看构建成功的日志，可看到熟悉的 BUILD SUCCESS。 
+
+<img src="images\image-20231113181831931.png" alt="image-20231113181831931" style="zoom:80%;" />
+
+​    构建成功后进入 jenkins 数据卷目录/var/jenkins_home/workspace/my_hellojks 中可以看到新增了 target 目录。打开 target 目录，可以看到打出的 jar 包。
+
+```bash
+[root@ccjenkins my_hellojks]# ll
+总用量 4
+-rw-r--r-- 1 admin admin 1415 11月 13 11:33 pom.xml
+drwxr-xr-x 4 admin admin   30 11月 13 11:33 src
+drwxr-xr-x 8 admin admin  217 11月 13 11:43 target
+[root@ccjenkins my_hellojks]# ll target/
+总用量 17348
+drwxr-xr-x 3 admin admin       47 11月 13 11:43 classes
+drwxr-xr-x 3 admin admin       25 11月 13 11:42 generated-sources
+drwxr-xr-x 3 admin admin       30 11月 13 11:43 generated-test-sources
+-rw-r--r-- 1 admin admin 17759236 11月 13 11:43 hellojks-0.0.1-SNAPSHOT.jar
+-rw-r--r-- 1 admin admin     3080 11月 13 11:43 hellojks-0.0.1-SNAPSHOT.jar.original
+drwxr-xr-x 2 admin admin       28 11月 13 11:43 maven-archiver
+drwxr-xr-x 3 admin admin       35 11月 13 11:42 maven-status
+drwxr-xr-x 3 admin admin       17 11月 13 11:43 test-classes
+[root@ccjenkins my_hellojks]# pwd
+/var/jenkins_home/workspace/my_hellojks
+```
+
+**4.12.6.代码质量检测** 
+
+**（1） sonar-scanner 手动检测** 
+
+​    在 Jenkins 中数据卷目录/var/Jenkins_home 中已经安装过了 sonar-scanner。该目录下的 bin 目录中有 sonar-scanner 命令。Jenkins 就是通过调用该命令完成代码质量检测的。 
+
+```bash
+[root@ccjenkins bin]# ll
+总用量 8
+-rwxr-xr-x 1 root root 1822 12月 22 2022 sonar-scanner
+-rwxr-xr-x 1 root root  662 12月 22 2022 sonar-scanner-debug
+[root@ccjenkins bin]# pwd
+/var/jenkins_home/sonar-scanner/bin
+```
+
+​    这里先通过手工执行命令方式来体验一下 sonar-scanner 命令完成代码检测的过程。 由于配置文件中使用的相对路径都是相对路径，所以若要运行 sonar-scanner 命令对项 目进行手工质量检测，就需要在 workspace 的需要检测的项目目录中执行。所以，要么配置 全局变量 path，要么直接使用 sonar-scanner 命令的绝对路径。为了简单，采用命令绝对路 径方式。 
+
+```bash
+# 注意，一定要在项目目录下执行，在哪执行，sonar-scanner就扫哪里。
+# 因为/var/jenkins_home/sonar-scanner/conf 下的sonar-scanner.properties 
+sonar.sources=./ 
+sonar.java.binaries=./target
+
+[root@ccjenkins my_hellojks]# ll
+-rw-r--r-- 1 admin admin 1415 11月 13 11:33 pom.xml
+drwxr-xr-x 4 admin admin   30 11月 13 11:33 src
+drwxr-xr-x 8 admin admin  217 11月 13 11:43 target 
+# target里面有maven打包的jar包
+
+# 本例执行目录 /var/jenkins_home/workspace/my_hellojks
+/var/jenkins_home/sonar-scanner/bin/sonar-scanner \
+-Dsonar.login=admin \
+-Dsonar.password=qwe.1234 \
+-Dsonar.projectKey=my_hello_jks
+```
+
+​    看到以下日志，说明检测成功。 
+
+```bash
+INFO: Analysis report compressed in 20ms, zip size=21.7 kB
+INFO: Analysis report uploaded in 162ms
+INFO: ANALYSIS SUCCESSFUL, you can find the results at: http://192.168.110.123:9000/dashboard?id=my_hello_jks
+INFO: Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+INFO: More about the report processing at http://192.168.110.123:9000/api/ce/task?id=AYvG_ZDbf6nS70rHfdrd
+INFO: Analysis total time: 8.201 s
+INFO: ------------------------------------------------------------------------
+INFO: EXECUTION SUCCESS
+INFO: ------------------------------------------------------------------------
+INFO: Total time: 9.469s
+INFO: Final Memory: 23M/71M
+INFO: ------------------------------------------------------------------------
+```
+
+​    此时，在 sonarqube 首页就可看到多出了一个检测项目。 
+
+<img src="images\image-20231113181928229.png" alt="image-20231113181928229" style="zoom: 80%;" />
+
+**（2） 任务中配置 SonarScanner** 
+
+​    现在要在 Jenkins 的 my_hellojks 项目中应用 SonarScanner 对其代码进行质量检测。所以 需要在该项目中配置 SonarScanner。
+
+<img src="images\image-20231113181953935.png" alt="image-20231113181953935" style="zoom:80%;" />
+
+<img src="images\image-20231113182018879.png" alt="image-20231113182018879" style="zoom: 80%;" />
+
+<img src="images\image-20231113182045836.png" alt="image-20231113182045836" style="zoom:80%;" />
+
+**（3） 重新构建** 
+
+​    <font color=red>注意！要先删除上次手工检测的遗留文件，否则报错！</font>
+
+```bash
+[root@ccjenkins my_hellojks]# ll -a
+总用量 8
+drwxr-xr-x 6 admin admin   96 11月 13 16:57 .
+drwxr-xr-x 3 admin admin   25 11月 13 11:26 ..
+drwxr-xr-x 8 admin admin  315 11月 13 16:58 .git
+-rw-r--r-- 1 admin admin  395 11月 13 11:33 .gitignore
+-rw-r--r-- 1 admin admin 1415 11月 13 11:33 pom.xml
+drwxr-xr-x 2 root  root    48 11月 13 16:58 .scannerwork
+drwxr-xr-x 4 admin admin   30 11月 13 11:33 src
+drwxr-xr-x 8 admin admin  217 11月 13 16:57 target
+[root@ccjenkins my_hellojks]# rm -rf .scannerwork/
+```
+
+​    再次执行“立即构建”，构建成功后，刷新 SonarQube 页面，便可看到新增了一个项目。
+
+<img src="images\image-20231113182120236.png" alt="image-20231113182120236" style="zoom:80%;" />
+
+ **4.12.7.将 jar 包推送到目标服务器** 
+
+**（1） 配置 SSH** 
+
+​    Jenkins 通过 SSH 方式连接上目标服务器，并将 jar 包推送到目标服务器。 
+
+<img src="images\image-20231113182157734.png" alt="image-20231113182157734" style="zoom:80%;" />
+
+​    点击配置后，打开配置页面。将页面拉到最下面，找到“增加构建后操作步骤”。 
+
+<img src="images\image-20231113182232079.png" alt="image-20231113182232079" style="zoom:80%;" />
+
+<img src="images\image-20231113182300694.png" alt="image-20231113182300694" style="zoom:80%;" />
+
+**（2） 重新构建** 
+
+​    在返回的任务首页中，再次执行立即构建。查看日志可以看到连接目标服务器，推送 1 个文件的日志。 
+
+<img src="images\image-20231113182323605.png" alt="image-20231113182323605" style="zoom:80%;" />
+
+​    查看目标服务器的目标目录/usr/local/jenkins，可以看到 jar 包已经推送了过来。
+
+```bash
+[root@cctarget jenkins]# ll
+总用量 0
+drwxr-xr-x 2 root root 41 11月 13 17:26 target
+[root@cctarget jenkins]# ll target/
+总用量 17344
+-rw-r--r-- 1 root root 17759236 11月 13 17:26 hellojks-0.0.1-SNAPSHOT.jar
+```
+
+**4.12.8.构建镜像启动容器** 
+
+​    通过在 Jenkins 中配置在目标服务器中将要执行的相关命令，使得 Jenkins 将 jar 包推送 到目标服务器后，立即自动执行配置的命令，将 jar 包构建为一个镜像，并启动其相应的容 器，使项目启动运行。 
+
+**（1） 定义 Dockerfile** 
+
+​    若要构建镜像，就需要定义其 Dockerfile。现在 Idea 的工程中新建一个 Directory，例如 docker，然后在其中新建一个 file。 
+
+<image>
+
+**（2） 定义 compose.yml** 
+
+​    在 idea 的新建目录中再新建一个 compose.yml，用于构建镜像和启动容器。 
+
+<image>
+
+**（3） 推送到 GitLab** 
+
+​    将定义的这两个文件推送到 GitLab。在项目上右击，选择 Git - Commit Directory…。 www.bjpowernode.com 503 / 566 Copyright© 动力节点 
+
+<image>
+
+<image>
+
+**（4） 再配置构建后操作** 
+
+​    重新返回到任务首页，再次对“构建后操作”进行配置。
+
+<image>
+
+<image>
+
+**（5） 重新构建** 
+
+​    Jenkins 中在返回的任务首页中，再次执行立即构建。构建成功后，查看目标服务器中 的/root/Jenkins/test 目录，发现 docker 目录及其下的两个 docker 文件已经存在了，且 jar 包 也复制了进来。 
+
+```bash
+```
+
+​    在目标服务器中 docker images，可以看到 hellojks 镜像已经生成。 
+
+```bash
+```
+
+​    在目标服务器中 docker ps，可以看到容器已经启动了。 
+
+```bash
+```
+
+​    在浏览器中访问目标服务器中的应用，已经可以访问了。
+
+<image>
 
 
 
