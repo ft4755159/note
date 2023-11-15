@@ -2617,6 +2617,8 @@ IP 10.0.0.6.9770 > 10.0.0.7.cslistener: Flags [.], ack 1, win 512, length 0
 
 **4.4.4.Idea 中配置 Git**
 
+**git版本：最新版**
+
 <img src="images\image-20231108164144336.png" alt="image-20231108164144336" style="zoom:80%;" />
 
 <img src="images\image-20231108164208088.png" alt="image-20231108164208088" style="zoom:80%;" />
@@ -2637,7 +2639,7 @@ IP 10.0.0.6.9770 > 10.0.0.7.cslistener: Flags [.], ack 1, win 512, length 0
 
 **（2） 拉取镜像** 
 
-​    这里使用由 gitlab 官网发布的社区版镜像 gitlab/gitlab-ce:latest。该镜像最好是先拉取到 本地后再使用，因为该镜像比较大。 
+​    这里使用由 gitlab 官网发布的社区版镜像 **gitlab/gitlab-ce:latest（16.5.1）**。该镜像最好是先拉取到 本地后再使用，因为该镜像比较大。 
 
 ```bash
 1、配置镜像源
@@ -2765,6 +2767,8 @@ Password: 4pUj5sGJFyi8tC1589NxGyJvaLLrpJMC/L0Y3ATKCnM=
 
 ​    由于 SonarQube 需要 Postgres 数据库的支持，所以安装 SonarQube 之前需要先安装 Postgres 数据库。所以需要下载 Postgres 与 SonarQube 两个镜像。 
 
+**sonarqube:9.9-community**
+
 ```bash
 [root@ccsonarqube sonarqube]# docker images
 REPOSITORY   TAG             IMAGE ID       CREATED        SIZE
@@ -2891,6 +2895,8 @@ vm.max_map_count = 262144
 **（1） 下载安装包** 
 
 在官网复制 Latest 最新版的离线安装包的下载链接地址，在 Linux 系统中通过 wget 命令 下载，将其下载到某目录中。 
+
+**harbor-offline-installer-v2.7.3.tgz**
 
 ```bash
 [root@ccharbor local]# wget https://github.com/goharbor/harbor/releases/download/v2.7.3/harbor-offline-installer-v2.7.3.tgz
@@ -3038,7 +3044,7 @@ v2.7.3: Pulling from goharbor/prepare
 
 ​    由于 Jenkins 通过调用 Maven 来实现对项目的构建，所以需要在 Jenkins 主机中安装 Maven。由于 maven 的运行需要 JDK 的环境，所以需要首安装 JDK。 
 
-​    对于 JDK 的安装非常简单，只需要从官网下载相应版本的 JDK 到 Linux 系统后，直接解 压即可。无需配置。这里下载的是 jdk-8u211-linux-x64.tar.gz，将其解压到了/opt/apps 目录下， 并重命名为了 jdk。
+​    对于 JDK 的安装非常简单，只需要从官网下载相应版本的 JDK 到 Linux 系统后，直接解 压即可。无需配置。这里下载的是 **jdk-8u211-linux-x64.tar.gz**，将其解压到了/opt/apps 目录下， 并重命名为了 jdk。
 
 ```bash
 [root@ccjenkins ~]# rz -b  # 二进制上传
@@ -3061,7 +3067,7 @@ drwxr-xr-x 7 10 143 245 4月   2 2019 jdk
 
 **（1） 下载解压 maven** 
 
-​    首先需要从官网下载最新版本的 Maven 到 Linux 系统后，直接解压。这里下载的是 apache-maven-3.9.0-bin.tar.gz，将其解压到/opt/apps 目录下，并重命名为 maven。
+​    首先需要从官网下载最新版本的 Maven 到 Linux 系统后，直接解压。这里下载的是 **apache-maven-3.9.5-bin.tar.gz**，将其解压到/opt/apps 目录下，并重命名为 maven。
 
 ```bash
 [root@ccjenkins ~]# wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
@@ -3096,6 +3102,8 @@ drwxr-xr-x 6 root root  99 11月  8 12:05 maven
 **（1） 下载镜像** 
 
 ​    这里要使用 docker 方式来安装 Jenkins，所以需要先下载 Jenkins 的镜像。 
+
+**jenkins/jenkins:2.387.1-lts**
 
 ```bash
 [root@ccjenkins apps]# docker images
@@ -3304,7 +3312,9 @@ This may also be found at: /var/jenkins_home/secrets/initialAdminPassword
 
 **（2） 下载** 
 
-​    在 SonarQube 官网的帮助文档中可以下载 SonarScanner。这里下载一个 Linux 系统下使 用的版本。 
+​    在 SonarQube 官网的帮助文档中可以下载 SonarScanner。这里下载一个 Linux 系统下使用的版本。 
+
+**sonar-scanner-cli-4.8.0.2856-linux.zip**
 
 <img src="images\image-20231113174127657.png" alt="image-20231113174127657" style="zoom:80%;" />
 
@@ -3741,57 +3751,514 @@ drwxr-xr-x 2 root root 41 11月 13 17:26 target
 
 **4.12.8.构建镜像启动容器** 
 
-​    通过在 Jenkins 中配置在目标服务器中将要执行的相关命令，使得 Jenkins 将 jar 包推送 到目标服务器后，立即自动执行配置的命令，将 jar 包构建为一个镜像，并启动其相应的容 器，使项目启动运行。 
+​    通过在 Jenkins 中配置在目标服务器中将要执行的相关命令，使得 Jenkins 将 jar 包推送 到目标服务器后，立即自动执行配置的命令，将 jar 包构建为一个镜像，并启动其相应的容器，使项目启动运行。 
+
+先用 idea 在 terminal 中输入 `mvn clean package` 将项目打包成 hellojks-0.0.1-SNAPSHOT.jar，位置在 target 文件夹下
+
+如果mvn命令不可用，定义系统变量和环境变量下的 MAVEN_HOME 和 Path
 
 **（1） 定义 Dockerfile** 
 
 ​    若要构建镜像，就需要定义其 Dockerfile。现在 Idea 的工程中新建一个 Directory，例如 docker，然后在其中新建一个 file。 
 
-<image>
+<img src="images\image-20231115185507886.png" alt="image-20231115185507886" style="zoom:80%;" />
+
+```bash
+FROM openjdk:8u102
+LABEL auth="zhangsan" email="zhangsan@163.com"
+COPY hellojks-0.0.1-SNAPSHOT.jar /usr/local/jenkins/hellojks.jar
+WORKDIR /usr/local/jenkins/
+ENTRYPOINT ["java","-jar","hellojks.jar"]
+```
 
 **（2） 定义 compose.yml** 
 
 ​    在 idea 的新建目录中再新建一个 compose.yml，用于构建镜像和启动容器。 
 
-<image>
+<img src="images\image-20231115185543572.png" alt="image-20231115185543572" style="zoom:80%;" />
+
+```bash
+services:
+  hellojks:
+    build: ./
+    image: hellojks
+    container_name: myhellojks
+    ports:
+      - 8080:8080
+```
+
+
 
 **（3） 推送到 GitLab** 
 
 ​    将定义的这两个文件推送到 GitLab。在项目上右击，选择 Git - Commit Directory…。 www.bjpowernode.com 503 / 566 Copyright© 动力节点 
 
-<image>
+<img src="images\image-20231115185616065.png" alt="image-20231115185616065" style="zoom:80%;" />
 
-<image>
+<img src="images\image-20231115185636074.png" alt="image-20231115185636074" style="zoom:80%;" />
 
 **（4） 再配置构建后操作** 
 
 ​    重新返回到任务首页，再次对“构建后操作”进行配置。
 
-<image>
+<img src="images\image-20231115185715630.png" alt="image-20231115185715630" style="zoom:80%;" />
 
-<image>
+<img src="images\image-20231115185736263.png" alt="image-20231115185736263" style="zoom:80%;" />
+
+`target/*.jar docker/*`
+
+```bash
+cd /usr/local/jenkins/docker
+mv ../target/*.jar ./
+docker compose down
+docker compose up -d --build
+docker image prune -f
+```
+
+
 
 **（5） 重新构建** 
 
-​    Jenkins 中在返回的任务首页中，再次执行立即构建。构建成功后，查看目标服务器中 的/root/Jenkins/test 目录，发现 docker 目录及其下的两个 docker 文件已经存在了，且 jar 包 也复制了进来。 
+​    Jenkins 中在返回的任务首页中，再次执行立即构建。构建成功后，查看目标服务器中 的 /usr/local/jenkins 目录，发现 docker 目录及其下的两个 docker 文件已经存在了，且 jar 包 也复制了进来。 
 
 ```bash
+[root@cctarget jenkins]# ll
+总用量 0
+drwxr-xr-x 2 root root 78 11月 14 12:42 docker
+drwxr-xr-x 2 root root  6 11月 14 12:42 target
+[root@cctarget jenkins]# ll docker
+总用量 17352
+-rw-r--r-- 1 root root      115 11月 14 12:42 compose.yml
+-rw-r--r-- 1 root root      200 11月 14 12:42 Dockerfile
+-rw-r--r-- 1 root root 17759249 11月 14 12:42 hellojks-0.0.1-SNAPSHOT.jar
 ```
 
 ​    在目标服务器中 docker images，可以看到 hellojks 镜像已经生成。 
 
 ```bash
+[root@cctarget jenkins]# docker images
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+hellojks     latest    4a6b61ecfe16   8 minutes ago   659MB
+openjdk      8u102     ca5dd051db43   7 years ago     641MB
 ```
 
 ​    在目标服务器中 docker ps，可以看到容器已经启动了。 
 
 ```bash
+[root@cctarget jenkins]# docker ps
+CONTAINER ID   IMAGE      COMMAND                   CREATED         STATUS         PORTS                                       NAMES
+f02b2f59324a   hellojks   "java -jar hellojks.…"   8 minutes ago   Up 8 minutes   0.0.0.0:8080->8080/tcp, :::8080->8080/tcp   myhellojks
 ```
 
 ​    在浏览器中访问目标服务器中的应用，已经可以访问了。
 
-<image>
+http://192.168.110.125:8080/some
 
+<img src="images\image-20231115185823314.png" alt="image-20231115185823314" style="zoom:80%;" />
+
+
+
+## 4.13.自由风格的 CI 操作(最终架构) **
+
+​    前面的架构存在的问题是，若有多个目标服务器都需要使用该镜像，那么每个目标服务器都需要在本地构建镜像，形成系统资源浪费。若能够在 Jenkins 中将镜像构建好并推 送到 Harbor 镜像中心，那么无论有多少目标服务器需要该镜像，都只需要从 Harbor 拉取即可。
+
+**4.13.1.Jenkins 容器化实现** 
+
+**（1） Jenkins 容器化实现方案**
+
+​    有两种方案： 
+
+- DioD：要容器内部安装 Docker 引擎 
+
+- DooD：与宿主机共享 Docker 引擎 （推荐）
+
+删除 idea 中的 comopse.yml 文件
+
+**（2） 修改 docker.sock 权限** 
+
+​    /var/run/docker.sock 文件是 docker client 和 docker daemon 在本地进行通信的 socket 文件。默认的组为 docker，且 other 用户不具有读写权限，这样 Jenkins 是无法来操作该文件的。
+
+```bash
+drwx------  8 root           root            180 11月 14 12:05 docker
+-rw-r--r--  1 root           root              4 11月 14 12:05 docker.pid
+srw-rw----  1 root           docker            0 11月 14 12:05 docker.sock
+-rw-------  1 root           root              0 11月 14 12:03 ebtables.lock
+drwxr-xr-x  2 root           root             40 11月 14 12:03 faillock
+```
+
+​    所以这里需要将其组调整为 root，且为其分配读写权限。 
+
+```bash
+[root@ccjenkins run]# chown root:root docker.sock
+[root@ccjenkins run]# chmod o+rw docker.sock
+```
+
+​    此时再查看便可看到组与权限已经发生了变化。
+
+​    注意，docker.sock 每次关机 都会恢复原状
+
+```bash
+drwx------  8 root           root            180 11月 14 12:05 docker
+-rw-r--r--  1 root           root              4 11月 14 12:05 docker.pid
+srw-rw-rw-  1 root           root              0 11月 14 12:05 docker.sock
+-rw-------  1 root           root              0 11月 14 12:03 ebtables.lock
+drwxr-xr-x  2 root           root             40 11月 14 12:03 faillock
+```
+
+**（3） 修改 Jenkins 启动命令后重启** 
+
+​    首先强制删除正在运行的 Jenkins 容器。 
+
+```bash
+[root@ccjenkins var]# docker rm -f jenkins
+```
+
+​    然后在 Jenkins 启动命令中新增/var/run/docker.sock，docker 命令文件/usr/bin/docker， 及/etc/docker/daemon.json 文件为数据卷。重启 Jenkins 容器。 
+
+```bash
+docker run --name jenkins \
+--restart always \
+-p 8080:8080 \
+-p 50000:50000 \
+-v /var/jenkins_home:/var/jenkins_home \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v /usr/bin/docker:/usr/bin/docker \
+-v /etc/docker/daemon.json:/etc/docker/daemon.json \
+-d jenkins/jenkins:2.387.1-lts
+```
+
+**4.13.2.构建并推送镜像到 Harbor** 
+
+​    这里要实现 Jenkins 将来自 GitLab 的 jar 包构建为镜像，并推送到 Harbor。
+
+（1） 修改 daemon.json 文件 
+
+​    Jenkins 是 Harbor 的客户端，需要修改/etc/docker/daemon.json 文件。修改后重启 Docker。
+
+```bash 
+{
+"insecure-registries": ["192.168.110.124"]
+}
+```
+
+（2） Jenkins 删除构建后操作 
+
+​    原来的 Jenkins 中配置的“构建后操作”完成的是将代码推送到目标服务器后，让目标 服务器通过 docker compose 完成镜像的构建与启动。但现在不需要了，因为镜像构建任务 要由 Jenkins 自己完成了。在 Jenkins 当前任务下的“配置”中删除。
+
+<img src="images\image-20231115190122227.png" alt="image-20231115190122227" style="zoom:80%;" />
+
+<img src="images\image-20231115190147042.png" alt="image-20231115190147042" style="zoom:80%;" />
+
+（3） Jenkins 添加 shell 命令 
+
+​    在 sonarqube 对代码质量检测完毕后，再添加一个“构建步骤”。这个构建步骤通过 shell 命令方式完成。
+
+<img src="images\image-20231115190218287.png" alt="image-20231115190218287" style="zoom:80%;" />
+
+<img src="images\image-20231115190242956.png" alt="image-20231115190242956" style="zoom:80%;" />
+
+```bash
+mv target/*.jar docker/
+docker build -t hellojks docker/
+docker login -u admin -p qwe.1234 192.168.110.124
+docker tag hellojks 192.168.110.124/jks/hellojks
+docker image prune -f
+docker push 192.168.110.124/jks/hellojks
+```
+
+
+
+（4） 重新构建 
+
+​    Jenkins 中在返回的任务首页中，再次执行立即构建。构建成功后，在 Jenkins 主机中可 以查看到构建好的镜像与重 tag 过的镜像。 
+
+```bash 
+[root@ccjenkins my_hellojks]# docker images
+REPOSITORY                     TAG           IMAGE ID       CREATED         SIZE
+192.168.110.124/jks/hellojks   latest        da8c4987a161   3 minutes ago   659MB
+hellojks                       latest        da8c4987a161   3 minutes ago   659MB
+jenkins/jenkins                2.387.1-lts   d5ed2ceef0ec   8 months ago    471MB
+openjdk                        8u102         ca5dd051db43   7 years ago     641MB
+```
+
+​    在 harbor 的仓库中也可以看到推送来的镜像。
+
+<img src="images\image-20231115190319313.png" alt="image-20231115190319313" style="zoom:80%;" />
+
+<img src="images\image-20231115190342271.png" alt="image-20231115190342271" style="zoom:80%;" />
+
+<img src="images\image-20231115190406189.png" alt="image-20231115190406189" style="zoom:80%;" />
+
+**4.13.3.通知目标服务器** 
+
+**（1） 修改 daemon.json 文件** 
+
+​    目标服务器是 Harbor 的客户端，需要修改/etc/docker/daemon.json 文件。修改后重启 Docker。 
+
+```bash
+{
+"insecure-registries": ["192.168.110.124"]
+}
+```
+
+**（2） 定义脚本文件** 
+
+​    在目标服务器 PATH 路径下的任意目录中定义一个脚本文件 deploy.sh。例如，定义在 /usr/local/bin 目录下。然后再为其赋予可执行权限。这样该 deploy 命令就可以在任意目录 下运行了。 
+
+```bash
+[root@cctarget bin]# chmod a+x deploy.sh
+[root@cctarget bin]#
+[root@cctarget bin]# ll
+总用量 0
+-rwxr-xr-x 1 root root 0 11月 15 10:22 deploy.sh
+```
+
+文件内容如下：
+
+```bash
+#传参顺序
+harbor_addr=$1
+harbor_proj=$2
+image_repo=$3
+image_tag=$4
+app_port=$5
+export_port=$6
+
+#先删除已经存在的同名容器
+exist_container_id=`docker ps -a|grep $image_repo|awk '{print $1}'`
+
+if [ "$exist_container_id" != "" ]; then
+        docker stop $exist_container_id
+        docker rm $exist_container_id
+fi
+
+#先删除已经存在的同名镜像
+exist_image_tag=`docker images|grep $harbor_addr/$harbor_proj/$image_repo|awk '{print $2}'`
+
+image=$harbor_addr/$harbor_proj/$image_repo:$image_tag
+
+if [[ "$exist_image_tag" =~ "$image_tag" ]]; then
+        docker rmi -f $image
+fi
+
+
+docker login -u admin -p qwe.1234 $harbor_addr
+docker pull $image
+docker run --name $image_repo -d -p $export_port:$app_port $image
+
+echo "SUCCESS"
+```
+
+**（3） Jenkins 添加端口号参数** 
+
+​    为了使用户可以随时指定容器对外暴露的参数，这里在 Jenkins 当前任务下的“配置” 中“参数化构建过程”中添加一个字符参数。
+
+<img src="images\image-20231115190438959.png" alt="image-20231115190438959" style="zoom:80%;" />
+
+<img src="images\image-20231115190458341.png" alt="image-20231115190458341" style="zoom:80%;" />
+
+<img src="images\image-20231115190523915.png" alt="image-20231115190523915" style="zoom:80%;" />
+
+**（4） Jenkins 添加构建后操作** 
+
+​    还是在 Jenkins 当前任务下的“配置”中，为任务添加构建后操作。
+
+<img src="images\image-20231115190555831.png" alt="image-20231115190555831" style="zoom:80%;" />
+
+<img src="images\image-20231115190613420.png" alt="image-20231115190613420" style="zoom:80%;" />
+
+<img src="images\image-20231115190644056.png" alt="image-20231115190644056" style="zoom:80%;" />
+
+**（5） 重新构建工程** 
+
+​    这次重新构建，可以看到出现了 export_port 的文本框。在这里可以修改容器对外暴露的端口号8083。
+
+<img src="images\image-20231115190710406.png" alt="image-20231115190710406" style="zoom:80%;" />
+
+​    构建成功后可以看到，目标服务器中增加了新的镜像，该镜像是从 harbor 拉取的。 
+
+```bash
+[root@cctarget bin]# docker images
+REPOSITORY                     TAG       IMAGE ID       CREATED              SIZE
+192.168.110.124/jks/hellojks   latest    d308c1ef340a   About a minute ago   659MB
+hellojks                       latest    4a6b61ecfe16   24 hours ago         659MB
+openjdk                        8u102     ca5dd051db43   7 years ago          641MB
+```
+
+​    还可以看到，该镜像的容器也已经启动。 
+
+```bash
+[root@cctarget bin]# docker ps
+CONTAINER ID   IMAGE                                 COMMAND                   CREATED          STATUS          PORTS                                       NAMES
+4da4f2a5fa84   192.168.110.124/jks/hellojks:latest   "java -jar hellojks.…"   18 seconds ago   Up 16 seconds   0.0.0.0:8083->8080/tcp, :::8083->8080/tcp   hellojks
+```
+
+​    通过浏览器访问目标服务器的应用，是没有问题的。
+
+http://192.168.110.125:8083/some
+
+<img src="images\image-20231115190738372.png" alt="image-20231115190738372" style="zoom:80%;" />
+
+## 4.14.自由风格的 CD 操作  **
+
+​    现在要为 GitLab 中当前的项目主干分支 origin/master 上的代码打上一个 Tag，例如 v1.0.0。 然后修改代码后仍提交到 GitLab 的主干分支 origin/master 上，此时再给项目打上一个 Tag， 例如 v2.0.0。这样， hellojenkins 项目的主干分支 origin/master 上就打上了两个 Tag。 
+
+​    而 Jenkins 可以根据主干分支 origin/master 上代码的不同 Tag 对项目进行分别构建。实现项目的持续交付与持续部署。 
+
+**4.14.1.发布 V1.0.0 版本** 
+
+**（1） 修改代码并推送** 
+
+​    简单修改一个 Controller 中方法的返回值。修改代码后，将其推送到 GitLab。
+
+<img src="images\image-20231115190803513.png" alt="image-20231115190803513" style="zoom:80%;" />
+
+**（2） GitLab 中项目打 Tag**
+
+<img src="images\image-20231115190831200.png" alt="image-20231115190831200" style="zoom:80%;" />
+
+<img src="images\image-20231115190920151.png" alt="image-20231115190920151" style="zoom:80%;" />
+
+<img src="images\image-20231115190941872.png" alt="image-20231115190941872" style="zoom:80%;" />
+
+<img src="images\image-20231115191000964.png" alt="image-20231115191000964" style="zoom:80%;" />
+
+**4.14.2.发布 V2.0.0 版本** 
+
+**（1） 修改代码** 
+
+​    简单修改一个 Controller 中方法的返回值。将修改后的项目源码提交到 GitLab。 
+
+<img src="images\image-20231115191026080.png" alt="image-20231115191026080" style="zoom:80%;" />
+
+**（2） GitLab 中再打 Tag** 
+
+​    在 GitLab 中再次为刚提交到主干分支 origin/master 上的代码再打上一个新的 Tag。
+
+<img src="images\image-20231115191108935.png" alt="image-20231115191108935" style="zoom:80%;" />
+
+<img src="images\image-20231115191131438.png" alt="image-20231115191131438" style="zoom:80%;" />
+
+<img src="images\image-20231115191153708.png" alt="image-20231115191153708" style="zoom:80%;" />
+
+<img src="images\image-20231115191214229.png" alt="image-20231115191214229" style="zoom:80%;" />
+
+​    此时可以看到，当前项目具有了两个 Tag。 
+
+<img src="images\image-20231115191233900.png" alt="image-20231115191233900" style="zoom:80%;" />
+
+**4.14.3.Jenkins 配置 tag 参数** 
+
+​    由于 GitLab 中的项目具有 tag 标签，那么 Jenkins 在进行项目构建时就需要让用户选择 准备构建哪个 tag 的项目。所以，需要在 Jenkins 中配置一个 Git 参数 tag 作为用户选项。 
+
+**（1） 添加 Git 参数** 
+
+<img src="images\image-20231115191256468.png" alt="image-20231115191256468" style="zoom:80%;" />
+
+<img src="images\image-20231115191316800.png" alt="image-20231115191316800" style="zoom:80%;" />
+
+​    这里选择的 Git 参数，即为前面下载的 Git Parameter 插件。
+
+htag
+
+<img src="images\image-20231115191348144.png" alt="image-20231115191348144" style="zoom:80%;" />
+
+**（2） 添加 checkout 命令** 
+
+​    然后当前页面继续下拉，找到 Build Steps。
+
+<img src="images\image-20231115191507173.png" alt="image-20231115191507173" style="zoom:80%;" />
+
+`git checkout $htag`
+
+<img src="images\image-20231115191602982.png" alt="image-20231115191602982" style="zoom:80%;" />
+
+**（3） 修改构建命令配置** 
+
+​    然后当前页面继续下拉，找到 Build Steps 中原来添加的构建命令。在所有涉及镜像的命 令中添加上$htag 变量引用。然后应用保存。 
+
+<img src="images\image-20231115191638797.png" alt="image-20231115191638797" style="zoom:80%;" />
+
+```bash
+mv target/*.jar docker/
+docker build -t hellojks:$htag docker/
+docker login -u admin -p qwe.1234 192.168.110.124
+docker tag hellojks:$htag 192.168.110.124/jks/hellojks:$htag
+docker image prune -f
+docker push 192.168.110.124/jks/hellojks:$htag
+```
+
+
+
+**（4） 修改 SSH 配置** 
+
+​    然后当前页面继续下拉，找到“构建后操作”中的 Send build artifacts over SSH 中的 Exec  command，将原来写死的版本 latest 修改为$htag。
+
+`deploy.sh 192.168.110.124 jks hellojks $htag 8080 $export_port`
+
+<img src="images\image-20231115191738922.png" alt="image-20231115191738922" style="zoom:80%;" />
+
+**4.14.4.部署 v1.0.0** 
+
+**（1） 重新构建工程** 
+
+​    任务首页中再次点击 Build with Parameters 构建项目，发现增加了 hjtag 选项。这里选择 v1.0.0 进行构建。
+
+<img src="images\image-20231115191809792.png" alt="image-20231115191809792" style="zoom:80%;" />
+
+ **（2） 构建结果** 
+
+​    构建成功后，在 Jenkins 中可以看到增加了新的镜像。 
+
+```bash
+[root@ccjenkins my_hellojks]# docker images
+REPOSITORY                     TAG           IMAGE ID       CREATED              SIZE
+192.168.110.124/jks/hellojks   v1.0.0        20d4feb2ffa2   About a minute ago   659MB
+hellojks                       v1.0.0        20d4feb2ffa2   About a minute ago   659MB
+hellojks                       latest        8c365585d136   5 hours ago          659MB
+192.168.110.124/jks/hellojks   latest        8c365585d136   5 hours ago          659MB
+jenkins/jenkins                2.387.1-lts   d5ed2ceef0ec   8 months ago         471MB
+openjdk                        8u102         ca5dd051db43   7 years ago          641MB
+```
+
+​    Harbor 中新增了 v1.0.0 的镜像。 
+
+<img src="images\image-20231115191832427.png" alt="image-20231115191832427" style="zoom:80%;" />
+
+​    在目标服务器上新增了 v1.0.0 的镜像，且该容器也运行了起来。
+
+```bash
+[root@cctarget bin]# docker images
+REPOSITORY                     TAG       IMAGE ID       CREATED          SIZE
+192.168.110.124/jks/hellojks   v1.0.0    20d4feb2ffa2   25 seconds ago   659MB
+192.168.110.124/jks/hellojks   latest    8c365585d136   5 hours ago      659MB
+hellojks                       latest    4a6b61ecfe16   29 hours ago     659MB
+openjdk                        8u102     ca5dd051db43   7 years ago      641MB
+```
+
+```bash
+[root@cctarget bin]# docker ps
+CONTAINER ID   IMAGE                                 COMMAND                   CREATED         STATUS         PORTS                                       NAMES
+8028cef63bec   192.168.110.124/jks/hellojks:v1.0.0   "java -jar hellojks.…"   2 minutes ago   Up 2 minutes   0.0.0.0:8081->8080/tcp, :::8081->8080/tcp   hellojks
+```
+
+​    在浏览器上访问到的页面内容也是 v1.0.0 的内容了。 
+
+192.168.110.125:8081/some
+
+<img src="images\image-20231115191918099.png" alt="image-20231115191918099" style="zoom:80%;" />
+
+**4.14.5.部署 v2.0.0** 
+
+​    此时再选择 v2.0.0 进行构建。 
+
+<img src="images\image-20231115192003544.png" alt="image-20231115192003544" style="zoom:80%;" />
+
+​    构建成功后，在浏览器刷新即可看到 v2.0.0 版本的内容了。
+
+192.168.110.125:8081/some
+
+<img src="images\image-20231115192026187.png" alt="image-20231115192026187" style="zoom:80%;" />
 
 
 
