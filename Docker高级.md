@@ -3446,17 +3446,47 @@ http://192.168.110.123:9000
 
 **（1） 创建工程** 
 
-​    创建一个 Spring Boot 工程，其仅包含一个 spring web 依赖。 
+​    创建前基本环境配置
+
+<img src="images\001.png" alt="001" style="zoom:80%;" />
+
+<img src="images\002.png" alt="002" style="zoom:80%;" />
+
+创建一个 Spring Boot 工程，其仅包含一个 spring web 依赖。 
+
+<img src="images\003.png" alt="003" style="zoom:80%;" />
+
+<img src="images\004.png" alt="004" style="zoom:80%;" />
+
+<img src="images\005.png" alt="005" style="zoom:80%;" />
+
+<img src="images\006.png" alt="006" style="zoom:80%;" />
+
+检查项目是否有问题
+
+<img src="images\007.png" alt="007" style="zoom:80%;" />
+
+<img src="images\008.png" alt="008" style="zoom:80%;" />
+
+<img src="images\009.png" alt="009" style="zoom:80%;" />
+
+
 
 **（2） 定义 Controller** 
 
 ​    只需定义一个简单的 Controller 即可。 
 
-<img src="images\image-20231113175612843.png" alt="image-20231113175612843" style="zoom:80%;" />
+<img src="images\010.png" alt="010" style="zoom:80%;" />
+
+<img src="images\011.png" alt="011" style="zoom:80%;" />
+
+运行
+
+<img src="images\012.png" alt="012" style="zoom:80%;" />
 
 **（3） 访问效果** 
 
-<img src="images\image-20231113175716219.png" alt="image-20231113175716219" style="zoom:80%;" />
+<img src="images\013.png" alt="013" style="zoom:80%;" />
 
 **4.12.3.Idea 提交项目到远程仓库** 
 
