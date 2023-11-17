@@ -3083,7 +3083,7 @@ drwxr-xr-x 7   10  143 245 4月   2 2019 jdk
 drwxr-xr-x 6 root root  99 11月  8 12:05 maven
 ```
 
-**（2） 配置 maven 镜像仓库** 
+**（2） 配置 maven 镜像仓库** （有需要再配置）
 
 ​    maven解压后需要修改解压目录中conf/settings.xml文件中的两处配置。这里配置maven 的镜像源为 aliyun。 
 
@@ -3508,15 +3508,19 @@ http://192.168.110.123:9000
 
 ​    仿照远程仓库页面中的 Git global stetup 中的命令，在项目的 Terminal 窗口中创建一个 全局用户。
 
+​    创建之前检查一下 idea 的 Git 本地配置环境
+
+<img src="images\101.png" alt="101" style="zoom:80%;" />
+
 <img src="images\image-20231113180308392.png" alt="image-20231113180308392" style="zoom:80%;" />
 
 **（3） 初始化本地仓库** 
 
 ​    将当前的项目目录 hellojks 初始化为本地仓库。
 
-<img src="images\image-20231113180346449.png" alt="image-20231113180346449" style="zoom:80%;" />
+<img src="images\image-20231113180346449.png" alt="image-20231113180346449" style="zoom: 50%;" />
 
-<img src="images\image-20231113180429253.png" alt="image-20231113180429253" style="zoom:80%;" />
+<img src="images\102.png" alt="102" style="zoom:80%;" />
 
 **（4） 提交代码到本地库** 
 
@@ -3550,11 +3554,19 @@ http://192.168.110.123:9000
 
 192.168.110.121
 
-<img src="images\image-20231113180815229.png" alt="image-20231113180815229" style="zoom:80%;" />
+<img src="images\103.png" alt="103" style="zoom:80%;" />
 
-<img src="images\image-20231113180926533.png" alt="image-20231113180926533" style="zoom:80%;" />
+<img src="images\104.png" alt="104" style="zoom:80%;" />
 
-​    Push 后会弹出访问 GitLab 的登录窗口，输入用户名 root，密码为前面修改过的 qwe.1234 。 
+​    Push 后会先弹出使用token登录，试过了不可行。
+
+<img src="E:\105.png" alt="105" style="zoom:80%;" />
+
+​    Cancel 后修改配置
+
+<img src="images\106.png" alt="106" style="zoom:80%;" />
+
+  再次Push 后弹出访问 GitLab 的登录窗口，输入用户名 root，密码为前面修改过的 qwe.1234 。 
 
 <img src="images\image-20231113181001830.png" alt="image-20231113181001830" style="zoom:80%;" />
 
@@ -3726,6 +3738,12 @@ INFO: ------------------------------------------------------------------------
 
 <img src="images\image-20231113182045836.png" alt="image-20231113182045836" style="zoom:80%;" />
 
+```bash
+sonar.login=admin
+sonar.password=qwe.1234
+sonar.projectKey=${JOB_NAME}
+```
+
 **（3） 重新构建** 
 
 ​    <font color=red>注意！要先删除上次手工检测的遗留文件，否则报错！</font>
@@ -3748,7 +3766,7 @@ drwxr-xr-x 8 admin admin  217 11月 13 16:57 target
 
 <img src="images\image-20231113182120236.png" alt="image-20231113182120236" style="zoom:80%;" />
 
- **4.12.7.将 jar 包推送到目标服务器** 
+ **4.12.7.将 jar 包推送到目标服务器** （若使用最终架构，则跳过此节）
 
 **（1） 配置 SSH** 
 
@@ -3779,7 +3797,7 @@ drwxr-xr-x 2 root root 41 11月 13 17:26 target
 -rw-r--r-- 1 root root 17759236 11月 13 17:26 hellojks-0.0.1-SNAPSHOT.jar
 ```
 
-**4.12.8.构建镜像启动容器** 
+**4.12.8.构建镜像启动容器** （若使用最终架构，定义Dockerfile后跳过此节）
 
 ​    通过在 Jenkins 中配置在目标服务器中将要执行的相关命令，使得 Jenkins 将 jar 包推送 到目标服务器后，立即自动执行配置的命令，将 jar 包构建为一个镜像，并启动其相应的容器，使项目启动运行。 
 
@@ -3925,7 +3943,7 @@ drwxr-xr-x  2 root           root             40 11月 14 12:03 faillock
 
 ​    此时再查看便可看到组与权限已经发生了变化。
 
-​    注意，docker.sock 每次关机 都会恢复原状
+​    注意，docker.sock 每次关机 都会恢复原状！！！
 
 ```bash
 drwx------  8 root           root            180 11月 14 12:05 docker
@@ -3937,13 +3955,33 @@ drwxr-xr-x  2 root           root             40 11月 14 12:03 faillock
 
 **（3） 修改 Jenkins 启动命令后重启** 
 
-​    首先强制删除正在运行的 Jenkins 容器。 
+​    首先创建并修改daemon.json文件（一般来讲/etc/docker/路径下没有daemon.json文件，如果执行了下面的jenkins run操作，由于数据卷挂载，系统会默认daemon.json为文件夹，导致报错）
+
+```bash
+[root@ccjenkins run]# cd /etc/docker/
+[root@ccjenkins docker]# ll
+总用量 0
+[root@ccjenkins docker]# touch daemon.json
+[root@ccjenkins docker]# vim daemon.json
+
+{
+"insecure-registries": ["192.168.110.124"]
+}
+```
+
+​    然后强制删除正在运行的 Jenkins 容器。 
 
 ```bash
 [root@ccjenkins var]# docker rm -f jenkins
 ```
 
-​    然后在 Jenkins 启动命令中新增/var/run/docker.sock，docker 命令文件/usr/bin/docker， 及/etc/docker/daemon.json 文件为数据卷。重启 Jenkins 容器。 
+​    修改了 daemon.json 需要重启docker 
+
+```bash
+[root@ccjenkins docker]# systemctl restart docker
+```
+
+​    然后在 Jenkins 启动命令中新增/var/run/docker.sock，docker 命令文件/usr/bin/docker， 及/etc/docker/daemon.json 文件为数据卷。重启 Jenkins 容器。 （由于之前jenkins挂载的-v /var/jenkins_home:/var/jenkins_home 路径与下面的一致，所以不用担心前面配置的数据丢失）
 
 ```bash
 docker run --name jenkins \
@@ -3961,7 +3999,7 @@ docker run --name jenkins \
 
 ​    这里要实现 Jenkins 将来自 GitLab 的 jar 包构建为镜像，并推送到 Harbor。
 
-（1） 修改 daemon.json 文件 
+（1） 修改 daemon.json 文件 （前面已经修改过了）
 
 ​    Jenkins 是 Harbor 的客户端，需要修改/etc/docker/daemon.json 文件。修改后重启 Docker。
 
@@ -3971,7 +4009,7 @@ docker run --name jenkins \
 }
 ```
 
-（2） Jenkins 删除构建后操作 
+（2） Jenkins 删除构建后操作 （如果没有走”中间架构“，这一步也跳过）
 
 ​    原来的 Jenkins 中配置的“构建后操作”完成的是将代码推送到目标服务器后，让目标 服务器通过 docker compose 完成镜像的构建与启动。但现在不需要了，因为镜像构建任务 要由 Jenkins 自己完成了。在 Jenkins 当前任务下的“配置”中删除。
 
@@ -3988,6 +4026,7 @@ docker run --name jenkins \
 <img src="images\image-20231115190242956.png" alt="image-20231115190242956" style="zoom:80%;" />
 
 ```bash
+# 此命令属于jenkins服务器本地操作，路径在 /var/jenkins_home/workspace/my_hellojks
 mv target/*.jar docker/
 docker build -t hellojks docker/
 docker login -u admin -p qwe.1234 192.168.110.124
@@ -4033,7 +4072,7 @@ openjdk                        8u102         ca5dd051db43   7 years ago     641M
 
 **（2） 定义脚本文件** 
 
-​    在目标服务器 PATH 路径下的任意目录中定义一个脚本文件 deploy.sh。例如，定义在 /usr/local/bin 目录下。然后再为其赋予可执行权限。这样该 deploy 命令就可以在任意目录 下运行了。 
+​    在目标服务器定义一个脚本文件 deploy.sh。例如，定义在 /usr/local/bin 目录下。然后再为其赋予可执行权限。这样该 deploy 命令就可以在任意目录下运行了。 
 
 ```bash
 [root@cctarget bin]# chmod a+x deploy.sh
@@ -4098,6 +4137,8 @@ echo "SUCCESS"
 <img src="images\image-20231115190613420.png" alt="image-20231115190613420" style="zoom:80%;" />
 
 <img src="images\image-20231115190644056.png" alt="image-20231115190644056" style="zoom:80%;" />
+
+`deploy.sh 192.168.110.124 jks hellojks latest 8080 $export_port`
 
 **（5） 重新构建工程** 
 
