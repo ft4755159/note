@@ -3544,7 +3544,7 @@ http://192.168.110.123:9000
 
 ​    首先要从远程仓库中获取仓库地址。选择复制 Clone with HTTP 的地址。
 
-<img src="images\image-20231113180649990.png" alt="image-20231113180649990" style="zoom:80%;" />
+<img src="images\image-20231113180649990.png" alt="image-20231113180649990" style="zoom: 50%;" />
 
 ​    然后在项目上右键，选择 Git - Push。 
 
